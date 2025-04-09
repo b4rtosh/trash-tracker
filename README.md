@@ -31,4 +31,8 @@ flowchart TD
 ## How to run the app
 1. Clone the repository
 2. Run ```pip install -r .\src\requirements\requirements.txt```
-3. Run ```python .\src\manage.py runserver``` to start the server
+3. Navigate to the persistence directory: ```cd persistence``` and run ```docker-compose up -d```
+4. Navigate to the src directory 
+5. Run ```python manage.py makemigrations routes```
+6. Run ```python manage.py migrate```
+7. Run ```python manage.py runserver``` to start the server
