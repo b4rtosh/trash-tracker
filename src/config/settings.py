@@ -1,9 +1,13 @@
 import os
 import sys
 from pathlib import Path
+import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+env = environ.Env(DEBUG=(bool, False))
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env('DEBUG')
 # Modify INSTALLED_APPS to use apps in the apps directory
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -14,12 +18,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Local apps
-    'apps.core',
-    'apps.items',
-    'apps.frontend',
-
-    # Third-party apps
-    'rest_framework',
+    'apps.routes'
 ]
 
 # Add middleware configuration - this was missing
@@ -45,7 +44,7 @@ STATICFILES_DIRS = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'apps/frontend/templates'],
+        'DIRS': [BASE_DIR / 'apps/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -58,10 +57,18 @@ TEMPLATES = [
     },
 ]
 
-# Add SECRET_KEY - this is required for Django to run
-SECRET_KEY = 'django-insecure-temporary-key-for-development-only'
+DATABASES = {
+    "default": {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'trash_tracker',
+            'USER': 'admin',
+            'PASSWORD': 'adminpass',
+            'HOST': 'localhost',
+            'PORT': '3306',
+        },
+}
 
 # Update the base directory for Python to find apps
 sys.path.insert(0, str(BASE_DIR / 'apps'))
-DEBUG = True
 DJANGO_TEMPLATE_DEBUG = True
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
