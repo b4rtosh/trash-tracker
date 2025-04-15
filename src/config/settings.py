@@ -36,15 +36,17 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 
 # Update static and template directories
-STATIC_URL = '/static/'
+STATIC_URL = '/web/'
 STATICFILES_DIRS = [
-    BASE_DIR / 'frontend/static',
+    BASE_DIR / 'web/static',
 ]
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'apps/templates'],
+        'DIRS': [
+            BASE_DIR / 'web/templates'
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

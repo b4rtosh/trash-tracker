@@ -1,0 +1,3 @@
+1. index - list of all previous routes with button to add and each route can be clicked to open "route_detail"
+2. route_form - a template to create or ubdate a route: add name of the route in the top of the page, on the left a map on which points are visualized, on the right a table with added points (address) and returned coordinates,
+3. route_detail - the same view as above, but values in the table are in the order and the map shows the route, somewhere need to add a time of the route, also it shoud have a button to delete the route
