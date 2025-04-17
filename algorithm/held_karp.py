@@ -43,7 +43,6 @@ def held_karp(dists):
         res.append((s[(bits, k)][0] + dists[k][0], k))
     opt, parent = min(res)
 
-    # Backtrack to find full path
     path = []
     for i in range(n - 1):
         path.append(parent)
@@ -51,7 +50,6 @@ def held_karp(dists):
         _, parent = s[(bits, parent)]
         bits = new_bits
 
-    # Add implicit start state
     path.append(0)
 
     return opt, list(reversed(path))
