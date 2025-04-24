@@ -19,7 +19,7 @@ def route_detail(request, route_id):
         'view_name': 'route_detail'
     })
 
-def map_view(request):
+def route_create(request):
     # Zakodowana trasa
     encoded_polyline = "_f}vH_q|fBLGJKBA@AFGDE@ABCPURU@AN]BGFWBEBMH[F[BK@GHi@@EDW@KVcBBMDY@IBUBSBKFc@BSFa@@IJu@Hu@Fa@Fa@T}ADQRaAJe@@E?E@CBO@KFi@Dg@Bw@@I?Q@]?C?K?Y?K?W@yA?uB?K?k@Ay@C{@Gi@Ie@EUI]EO"
 
@@ -37,8 +37,7 @@ def map_view(request):
     # Generowanie HTML
     map_html = folium_map._repr_html_()
     print(map_html)
-    return render(request, 'routes/route_form.html', {'map_html': map_html})
-def route_create(request):
+    print(f"Map HTML: {map_html}")
     """Create a new route"""
     # if request.method == 'POST':
     #     form = RouteForm(request.POST)
@@ -51,7 +50,7 @@ def route_create(request):
     return render(request, 'routes/route_form.html', {
         # 'form': form,
         'view_name': 'route_create'
-    })
+    ,'map_html': map_html})
 
 def route_update(request, route_id):
     """Update an existing route"""

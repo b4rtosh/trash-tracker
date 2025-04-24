@@ -1,99 +1,34 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Route Detail</title>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
-  <link rel="stylesheet" href="{% static 'css/global.css' %}"/>
-  <link rel="stylesheet" href="{% static 'css/styleguide.css' %}"/>
-</head>
-<body>
-  <div class="landing-page">
-    <div class="div">
-
-      <!-- Top Navigation -->
-      <div class="navigation">
-        <div class="overlap-3">
-          <a href="{% url 'routes:index' %}" class="navigation-link">
-            <div class="text-wrapper-11">TrashTracker</div>
-            <div class="overlap-group-2">
-              <img src="{% static 'img/logo-1.png' %}" alt="Logo">
-            </div>
-          </a>
+{% extends 'base.html' %}
+{% block content %}
+    <h2>{{ route.name }}</h2>
+    <p><strong>Estimated Time:</strong> {{ route.duration }}</p>
+    <div style="display: flex; gap: 20px; margin-top: 20px;">
+        <div style="flex: 1;">
+            {{ map|safe }}
         </div>
-      </div>
-
-      <!-- Hero + Footer -->
-      <div class="overlap-group">
-        <div class="navigation-footer">
-          <!-- footer contents -->
+        <div style="flex: 1;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Address</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for point in points %}
+                    <tr>
+                        <td>{{ point.address }}</td>
+                        <td>{{ point.latitude }}</td>
+                        <td>{{ point.longitude }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <div class="hero-image"></div>
-      </div>
-
-      <!-- Route Detail Info -->
-      <div class="frame" style="top: 320px; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; height: auto; background: white;">
-        <div class="text-wrapper-10" style="margin-bottom: 10px; font-size: 24px;">Route Details</div>
-        <div><strong>Name:</strong> {{ route.name }}</div>
-        <div><strong>Estimated Duration:</strong> {{ route.duration }}</div>
-      </div>
-
-      <!-- Map and Ordered Table Section -->
-      <div class="cards" style="top: 400px;">
-        <div class="customer-quote">
-          {{ map_html|safe }}
-        </div>
-
-        <div class="customer-quote">
-          <h3 style="color: white;">Ordered Route Points</h3>
-          <table class="route-points-table" style="width: 100%; color: white; border-collapse: collapse;">
-            <thead>
-              <tr style="border-bottom: 1px solid #444;">
-                <th>#</th>
-                <th>Address</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for point in route.points %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ point.address }}</td>
-                <td>{{ point.lat }}</td>
-                <td>{{ point.lon }}</td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="4">No points in this route.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Page Info -->
-      <div class="copy">
-        <div class="page-title">
-          <p class="p">Your Route</p>
-          <p class="text-wrapper-9">Below is your calculated route and its duration.</p>
-        </div>
-      </div>
-
-      <!-- Delete Button -->
-      <div class="delete-route-container" style="position: absolute; bottom: 0; width: 100%; text-align: center; margin-top: 20px;">
-        <form method="post" action="{% url 'routes:route_delete' route.id %}">
-          {% csrf_token %}
-          <button class="button" style="background-color: #e94e4e; cursor: pointer;">
-            <div class="text-wrapper-8">Delete Route</div>
-          </button>
-        </form>
-      </div>
-
     </div>
-  </div>
-</body>
-</html>
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" name="delete" value="1">Delete Route</button>
+    </form>
+{% endblock %}

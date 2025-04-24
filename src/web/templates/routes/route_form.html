@@ -1,135 +1,64 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create or Update Route</title>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
-  <link rel="stylesheet" href="{% static 'css/global.css' %}"/>
-  <link rel="stylesheet" href="{% static 'css/styleguide.css' %}"/>
-</head>
-<body>
-  <div class="landing-page">
-    <div class="div">
+{% extends 'base.html' %}
 
-      <!-- Top Navigation -->
-      <div class="navigation">
-        <div class="overlap-3">
-<a href="{% url 'routes:index' %}" class="navigation-link">
-    <div class="text-wrapper-11">TrashTracker</div>
-    <div class="overlap-group-2">
-        <img src="{% static 'img/logo-1.png' %}" alt="Logo">
+{% block content %}
+<h2>{{ form_title }}</h2>
+
+<form method="post" style="margin-bottom: 20px;">
+    {% csrf_token %}
+    <label for="{{ form.name.id_for_label }}" style="color: lightgreen; font-weight: bold;">Route Name:</label><br>
+    <input type="text" name="address" id="id_address" placeholder="Enter route name" required style="padding: 10px; width: 70%;">
+    {{ form.name }}
+</form>
+
+<!-- Add Address Form -->
+<form method="post" style="margin-bottom: 20px;">
+    {% csrf_token %}
+    <label for="id_address" style="color: lightgreen;">Add Address:</label><br>
+    <input type="text" name="address" id="id_address" placeholder="Enter address" required style="padding: 10px; width: 70%;">
+    <button type="submit" name="add_point" class="btn">Add Point</button>
+</form>
+
+<!-- Map + Table -->
+<div style="display: flex; gap: 20px;">
+    <div style="flex: 1;">
+        {{ map_html|safe }}
     </div>
-</a>
-          </div>
-
-
-      </div>
-
-      <!-- Hero + Footer -->
-      <div class="overlap-group">
-        <div class="navigation-footer">
-          <!-- footer contents -->
-        </div>
-        <div class="hero-image"></div>
-      </div>
-<!-- Route Name Form -->
-<div class="frame" style="top: 320px; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; height: 320px; background: white;">
-  <div style="flex-grow: 1; display: flex; flex-direction: column;">
-    <div class="text-wrapper-10" style="margin-bottom: 10px;">Please input the route name:</div>
-    <form method="post" style="flex-grow: 1; display: flex; flex-direction: column;">
-      {% csrf_token %}
-      <input
-        type="text"
-        name="route_name"
-        placeholder="Route name"
-        value="{{ route.name }}"
-        class="route-name-input"
-        style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;"
-      />
-      <input
-        type="text"
-        name="latitude"
-        placeholder="Latitude"
-        class="coordinate-input"
-        style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;"
-      />
-      <input
-        type="text"
-        name="longitude"
-        placeholder="Longitude"
-        class="coordinate-input"
-        style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px;"
-      />
-<button type="submit" class="button" style="margin-top: 200px; margin-left: 200px; margin-bottom: 10px;">Save Route</button>
-    </form>
-  </div>
-
-  <!-- Add Point button pinned to the bottom of the frame -->
-<button type="button" class="button" style="margin-top: 200px;">Add Point</button>
-</div>
-
-
-
-
-
-      <!-- Map and Table Section -->
-      <div class="cards" style="top: 600px;">
-        <!-- Map Display -->
-    <div class="customer-quote">
-      <div class="folium-map-container">
-          <div id="map" style="height: 500px;"></div>
-{{ folium_map|safe }}
-      </div>
-    </div>
-
-        <!-- Route Points Table -->
-        <div class="customer-quote">
-          <h3 style="color: white;">Designated Spots</h3>
-          <table class="route-points-table" style="width: 100%; color: white; border-collapse: collapse;">
+    <div style="flex: 1;">
+        <table>
             <thead>
-              <tr style="border-bottom: 1px solid #444;">
-                <th>Address</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-              </tr>
+                <tr>
+                    <th>Address</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Actions</th>
+                </tr>
             </thead>
             <tbody>
-  {% for point in route.points %}
-    <tr>
-      <td>{{ point.address }}</td>
-      <td>{{ point.lat }}</td>
-      <td>{{ point.lon }}</td>
-      <!-- Add delete button for each row -->
-      <td>
-        <form method="POST" action="{% url 'delete_point' point.id %}">
-          {% csrf_token %}
-          <button type="submit" class="button" style="background-color: red; color: white;">Delete</button>
-        </form>
-      </td>
-    </tr>
-  {% empty %}
-    <tr>
-      <td colspan="4">No points added yet.</td>
-    </tr>
-  {% endfor %}
-</tbody>
-
-          </table>
-        </div>
-      </div>
-
-      <!-- Page Info -->
-      <div class="copy">
-        <div class="page-title">
-          <p class="p">Map your trash!</p>
-          <p class="text-wrapper-9">Input your designated spots and have your route calculated and returned!</p>
-        </div>
-      </div>
-
+                {% for point in points %}
+                <tr>
+                    <td>{{ point.address }}</td>
+                    <td>{{ point.latitude }}</td>
+                    <td>{{ point.longitude }}</td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" name="delete" value="{{ point.id }}" class="btn">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No points added yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-  </div>
 </div>
-</body>
-</html>
+
+<!-- Save Button -->
+<form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    <button type="submit" name="save_route" class="btn">Save Route</button>
+</form>
+{% endblock %}
