@@ -7,6 +7,9 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('add/', views.route_create, name='route_create'),
     path('<int:route_id>/', views.route_detail, name='route_detail'),
+    path('tmp', views.route_detail, name='route_detail'),
     path('update/<int:route_id>/', views.route_update, name='route_update'),
     path('delete/<int:route_id>/', views.route_delete, name='route_delete'),
+    path('map/', views.map_view, name='map_view'),
+    path('map/', views.map_view, name='map'),
 ]
