@@ -1,13 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trash Tracker - Home</title>
-</head>
-<body>
-    <h1>Trash Tracker</h1>
-    <p>Welcome to the Trash Tracker application</p>
-    <p>View name: {{ view_name }}</p>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{{ form_title }}</h2>
+
+<form method="post" style="margin-bottom: 20px;">
+    {% csrf_token %}
+    <label for="{{ form.name.id_for_label }}" style="color: lightgreen; font-weight: bold;">Route Name:</label><br>
+    <input type="text" name="address" id="id_address" placeholder="Enter route name" required style="padding: 10px; width: 70%;">
+    {{ form.name }}
+</form>
+
+<!-- Add Address Form -->
+<form method="post" style="margin-bottom: 20px;">
+    {% csrf_token %}
+    <label for="id_address" style="color: lightgreen;">Add Address:</label><br>
+    <input type="text" name="address" id="id_address" placeholder="Enter address" required style="padding: 10px; width: 70%;">
+    <button type="submit" name="add_point" class="btn">Add Point</button>
+</form>
+
+<!-- Map + Table -->
+<div style="display: flex; gap: 20px;">
+    <div style="flex: 1;">
+        {{ map_html|safe }}
+    </div>
+    <div style="flex: 1;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Address</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for point in points %}
+                <tr>
+                    <td>{{ point.address }}</td>
+                    <td>{{ point.latitude }}</td>
+                    <td>{{ point.longitude }}</td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" name="delete" value="{{ point.id }}" class="btn">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No points added yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Save Button -->
+<form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    <button type="submit" name="save_route" class="btn">Save Route</button>
+</form>
+{% endblock %}

@@ -1,13 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trash Tracker - Home</title>
-</head>
-<body>
-    <h1>Trash Tracker</h1>
-    <p>Welcome to the Trash Tracker application</p>
-    <p>View name: {{ view_name }}</p>
-</body>
-</html>
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <h2>Routes</h2>
+    <a href="{% url 'routes:route_create' %}" class="btn">Add New Route</a>
+    <ul class="route-list">
+        {% for route in routes %}
+            <li><a href="{% url 'route_detail' route.id %}">{{ route.name }}</a></li>
+        {% empty %}
+            <li>No routes available.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

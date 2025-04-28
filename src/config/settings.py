@@ -35,10 +35,11 @@ MIDDLEWARE = [
 # Add ROOT_URLCONF setting
 ROOT_URLCONF = 'config.urls'
 
-# Update static and template directories
-STATIC_URL = '/web/'
+STATIC_URL = '/static/'
+
+# Add this to tell Django where to look for static files
 STATICFILES_DIRS = [
-    BASE_DIR / 'web/static',
+    BASE_DIR / "web/staticapp",  # Adjust the path based on your directory structure
 ]
 
 TEMPLATES = [

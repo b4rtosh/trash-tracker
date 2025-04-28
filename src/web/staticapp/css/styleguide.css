@@ -1,0 +1,63 @@
+:root {
+  --small-text-font-family: "Inter", Helvetica;
+  --small-text-font-weight: 500;
+  --small-text-font-size: 16px;
+  --small-text-letter-spacing: 0px;
+  --small-text-line-height: 150%;
+  --small-text-font-style: normal;
+  --subheading-font-family: "Inter", Helvetica;
+  --subheading-font-weight: 400;
+  --subheading-font-size: 24px;
+  --subheading-letter-spacing: 0px;
+  --subheading-line-height: 150%;
+  --subheading-font-style: normal;
+  --body-text-font-family: "Inter", Helvetica;
+  --body-text-font-weight: 500;
+  --body-text-font-size: 20px;
+  --body-text-letter-spacing: 0px;
+  --body-text-line-height: 150%;
+  --body-text-font-style: normal;
+  --button-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --system-colors-grays-white: rgba(255, 255, 255, 1);
+  --system-colors-labels-secondary: rgba(60, 60, 67, 0.6);
+  --variable-collection-spacing-s: 24px;
+  --variable-collection-spacing-m: 48px;
+  --variable-collection-spacing-XS: 8px;
+  --variable-collection-spacing-SM: 32px;
+}
+
+/*
+
+To enable a theme in your HTML, simply add one of the following data attributes to an HTML element, like so:
+
+<body data-system-colors-mode="light">
+    <!-- the rest of your content -->
+</body>
+
+You can apply the theme on any DOM node, not just the `body`
+
+*/
+
+[data-system-colors-mode="light"] {
+  --system-colors-labels-secondary: rgba(60, 60, 67, 0.6);
+}
+
+[data-system-colors-mode="dark"] {
+  --system-colors-labels-secondary: rgba(235, 235, 245, 0.6);
+}
+
+[data-system-colors-mode="dark-elevated"] {
+  --system-colors-labels-secondary: rgba(235, 235, 245, 0.6);
+}
+
+[data-system-colors-mode="IC-light"] {
+  --system-colors-labels-secondary: rgba(60, 60, 67, 0.8);
+}
+
+[data-system-colors-mode="IC-dark"] {
+  --system-colors-labels-secondary: rgba(235, 235, 245, 0.7);
+}
+
+[data-system-colors-mode="IC-dark-elevated"] {
+  --system-colors-labels-secondary: rgba(235, 235, 245, 0.7);
+}

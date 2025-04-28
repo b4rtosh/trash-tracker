@@ -1,13 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trash Tracker - Home</title>
-</head>
-<body>
-    <h1>Trash Tracker</h1>
-    <p>Welcome to the Trash Tracker application</p>
-    <p>View name: {{ view_name }}</p>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+    <h2>{{ route.name }}</h2>
+    <p><strong>Estimated Time:</strong> {{ route.duration }}</p>
+    <div style="display: flex; gap: 20px; margin-top: 20px;">
+        <div style="flex: 1;">
+            {{ map|safe }}
+        </div>
+        <div style="flex: 1;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Address</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for point in points %}
+                    <tr>
+                        <td>{{ point.address }}</td>
+                        <td>{{ point.latitude }}</td>
+                        <td>{{ point.longitude }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" name="delete" value="1">Delete Route</button>
+    </form>
+{% endblock %}
