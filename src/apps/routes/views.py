@@ -7,6 +7,7 @@ import requests
 import folium
 import polyline
 
+
 def index(request):
     """Home page view with all routes"""
     routes = Route.objects.all().order_by('-created_at')
@@ -59,7 +60,8 @@ def route_create(request):
         'map_html': map_html,
         'form': form
     }) 
-       
+
+
 def route_update(request, route_id):
     """Update an existing route"""
     route = get_object_or_404(Route, pk=route_id)
@@ -127,6 +129,7 @@ def add_point(request, route_id):
         'address_text': f"{address.street}, {address.city}"
     })
 
+
 def route_delete(request, route_id):
     """Delete a route"""
     route = get_object_or_404(Route, pk=route_id)
@@ -139,6 +142,7 @@ def route_delete(request, route_id):
         'route': route,
         'view_name': 'route_delete'
     })
+
 
 @require_http_methods(["POST"])
 def remove_point(request, point_id):
