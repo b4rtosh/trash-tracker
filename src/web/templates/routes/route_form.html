@@ -1,21 +1,26 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>{{ form_title }}</h2>
+<h2>{% if route %}Edit Route{% else %}Create New Route{% endif %}</h2>
 
 <form method="post" style="margin-bottom: 20px;">
     {% csrf_token %}
     <label for="{{ form.name.id_for_label }}" style="color: lightgreen; font-weight: bold;">Route Name:</label><br>
-    <input type="text" name="address" id="id_address" placeholder="Enter route name" required style="padding: 10px; width: 70%;">
     {{ form.name }}
+    <button type="submit" name="save_route" class="btn">Save Route</button>
 </form>
 
+{% if route %}
 <!-- Add Address Form -->
-<form method="post" style="margin-bottom: 20px;">
+<form method="post" id="pointForm" style="margin-bottom: 20px;">
     {% csrf_token %}
     <label for="id_address" style="color: lightgreen;">Add Address:</label><br>
-    <input type="text" name="address" id="id_address" placeholder="Enter address" required style="padding: 10px; width: 70%;">
-    <button type="submit" name="add_point" class="btn">Add Point</button>
+    <input type="text" name="street" id="id_street" placeholder="Street" required style="padding: 10px; width: 70%;">
+    <input type="text" name="city" id="id_city" placeholder="City" required style="padding: 10px; width: 70%;">
+    <input type="text" name="state" id="id_state" placeholder="State" required style="padding: 10px; width: 70%;">
+    <input type="text" name="postal_code" id="id_postal_code" placeholder="Postal code" required style="padding: 10px; width: 70%;">
+    <input type="text" name="country" id="id_country" placeholder="Country" required style="padding: 10px; width: 70%;">
+    <button type="button" id="addPointBtn" name="add_point" class="btn">Add Point</button>
 </form>
 
 <!-- Map + Table -->
@@ -33,21 +38,18 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="pointsTable">
                 {% for point in points %}
                 <tr>
-                    <td>{{ point.address }}</td>
+                    <td>{{ point.address_text }}</td>
                     <td>{{ point.latitude }}</td>
                     <td>{{ point.longitude }}</td>
                     <td>
-                        <form method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" name="delete" value="{{ point.id }}" class="btn">Delete</button>
-                        </form>
+                            <button type="button" class="btn delete-point" data-point-id="{{ point.id }}">Delete</button>
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
+                <tr id="no-points-row">
                     <td colspan="4" style="text-align:center;">No points added yet.</td>
                 </tr>
                 {% endfor %}
@@ -56,9 +58,94 @@
     </div>
 </div>
 
-<!-- Save Button -->
-<form method="post" style="margin-top: 20px;">
-    {% csrf_token %}
-    <button type="submit" name="save_route" class="btn">Save Route</button>
-</form>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    //     Add point button handler
+        document.getElementById('addPointBtn').addEventListener('click', function (){
+            const form = document.getElementById('pointForm');
+            const formData = new FormData(form)
+
+            fetch('/api/routes/{{ route.id }}/points', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    street: formData.get('street'),
+                    post_code: formData.get('postal_code'),
+                    city: formData.get('city'),
+                    state: formData.get('state'),
+                    country: formData.get('country'),
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                //     remove empty row
+                    const noPointsRow = document.getElementById('no-points-row');
+                    if (noPointsRow){
+                        noPointsRow.remove();
+                    }
+
+                //     add new point to the table
+                    const tbody = document.getElementById('pointsTable');
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                    <td>${data.address_text}</td>
+                    <td>${data.latitude}</td>
+                    <td>${data.longitude}</td>
+                    <td>
+                      <button type="button" class="btn delete-point" data-point-id="${data.id}">Delete</button>
+                    </td>
+`;
+                    tbody.appendChild(tr);
+                //     clear form inptus
+                    form.reset();
+            // Reload the page to update map
+            //         location.reload();
+                })
+                .catch(error => console.log('Error:', error));
+        });
+    //     delete the point
+        document.getElementById('pointsTable').addEventListener('click', function(){
+            if (event.target.classList.contains('delete-point')){
+                const pointId = event.target.dataset.pointId;
+
+                fetch(`/api/points/${pointId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success){
+                        //     remove row from the table
+                            event.target.closest('tr').remove();
+
+                        //     add "no points" if table is empty
+                            const tbody = document.getElementById('pointsTable');
+                            if (tbody.children.length === 0){
+                                const tr = document.createElement('tr');
+                                tr.id = 'no-points-row';
+                                tr.innerHTML = '<td colspan="4" style="text-align:center;">No points added yet.</td>';
+                                tbody.appendChild(tr);
+                            }
+
+                        //     reload to update map
+                        //     location.reload()
+                        }
+                    })
+                    .catch(error => console.error('Error', error));
+            }
+        });
+    });
+</script>
+{% else %}
+<!--display map for new routes-->
+<div style="margin-top: 20px;">
+    {{ map_html|safe }}
+</div>
+{% endif %}
 {% endblock %}

@@ -1,9 +1,12 @@
+from rest_framework import viewsets, status
+from rest_framework.decorators import api_view, action
+from rest_framework.response import Response
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
 from .models import Route, Address, RoutePoint
+from .serializers import  RouteSerializer, AddressSerializer, RoutePointSerializer
 from .forms import RouteForm, AddressForm
+from .utils import coordinates as Coordinates
 import json
-import requests
 import folium
 import polyline
 
@@ -20,7 +23,9 @@ def index(request):
 def route_detail(request, route_id):
     """Display details for a specific route"""
     route = get_object_or_404(Route, pk=route_id)
-    points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
+    route_points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
+    # serialize points
+    points = RoutePointSerializer(route_points, many=True).data
     return render(request, 'routes/route_detail.html', {
         'route': route,
         'points': points,
@@ -29,25 +34,23 @@ def route_detail(request, route_id):
 
 
 def route_create(request):
-    # Zakodowana trasa
+    # encoded route
     encoded_polyline = "_f}vH_q|fBLGJKBA@AFGDE@ABCPURU@AN]BGFWBEBMH[F[BK@GHi@@EDW@KVcBBMDY@IBUBSBKFc@BSFa@@IJu@Hu@Fa@Fa@T}ADQRaAJe@@E?E@CBO@KFi@Dg@Bw@@I?Q@]?C?K?Y?K?W@yA?uB?K?k@Ay@C{@Gi@Ie@EUI]EO"
 
-    # Dekodowanie trasy
+    # decode paths
     decoded_points = polyline.decode(encoded_polyline)
 
     # Średnie współrzędne do wyśrodkowania mapy
     lat_center = sum(p[0] for p in decoded_points) / len(decoded_points)
     lon_center = sum(p[1] for p in decoded_points) / len(decoded_points)
 
-    # Tworzenie mapy
+    # create map
     folium_map = folium.Map(location=[lat_center, lon_center], zoom_start=13)
     folium.PolyLine(decoded_points, color='blue', weight=5, opacity=0.7).add_to(folium_map)
 
-    # Generowanie HTML
+    # generate map
     map_html = folium_map._repr_html_()
-    print(map_html)
-    print(f"Map HTML: {map_html}")
-    """Create a new route"""
+
     if request.method == 'POST':
         form = RouteForm(request.POST)
         if form.is_valid():
@@ -65,15 +68,18 @@ def route_create(request):
 def route_update(request, route_id):
     """Update an existing route"""
     route = get_object_or_404(Route, pk=route_id)
-    points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
+    route_points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
+
+    # serialize points
+    points = RoutePointSerializer(route_points, many=True).data
     
     if request.method == 'POST':
-        form = RouteForm(request.POST, intstance=route)
+        form = RouteForm(request.POST, instance=route)
         if form.is_valid():
             form.save()
             return redirect('routes:route_detail', route_id=route_id)
     else:
-        form = RouteForm(instance=Route)
+        form = RouteForm(instance=route)
     
     address_form = AddressForm()
 
@@ -86,65 +92,60 @@ def route_update(request, route_id):
     })
 
 
-@require_http_methods(['POST'])
+class RouteViewSet(viewsets.ModelViewSet):
+    queryset = Route.objects.all().order_by('-created_at')
+    serializer_class = RouteSerializer
+
+
+@api_view(['POST'])
 def add_point(request, route_id):
     """Add a point to a route"""
     route = get_object_or_404(Route, pk=route_id)
-    data = json.loads(request.body)
 
-    address = Address.objects.create(
-        street = data.get('street', ''),
-        city = data.get('city', ''),
-        state = data.get('city', ''),
-        state = data.get('state', ''),
-        posta_code = data.get('postal_code', ''),
-        country = data.get('country', '')
-    )
 
-    coordinates = coordinates
+    address_data = {
+        'street': request.data.get('street', ''),
+        'city': request.data.get('city', ''),
+        'state': request.data.get('state', ''),
+        'posta_code': request.data.get('postal_code', ''),
+        'country': request.data.get('country', '')
+    }
 
+    address_serializer = AddressSerializer(data=address_data)
+    if not address_serializer.is_valid():
+        return Response(address_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    address = address_serializer.save()
+
+    # get coordinates
+    coordinates = Coordinates.get_coordinates(address.city, address.street)
     if not coordinates:
         address.delete()
         # check if it should be code 400
-        return JsonResponse({'error': 'Could not geocode address'}, status=400)
-    
+        return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # create route point
     sequence = RoutePoint.objects.filter(route=route).count()
 
-    point = RoutePoint.objects.create(
-        route = route,
-        address = address,
+    point_data = {
+        'route': route.id,
+        'address': address.id,
         # add the actual geocoding with these two properties
-        latitude = coordinates.latitude,
-        longitude = coordinates.longitude,
-        sequence_number = sequence
-    )
+        'latitude': coordinates['latitude'],
+        'longitude': coordinates['longitude'],
+        'sequence_number': sequence
+    }
 
-    return JsonResponse({
-        'id': point.id,
-        'address_id': address.id,
-        'latitude': point.latitude,
-        'longitude': point.longitude,
-        'sequence_number': point.sequence_number,
-        # wtf do I return address_text
-        'address_text': f"{address.street}, {address.city}"
-    })
+    point_serializer = RoutePointSerializer(data=point_data)
+    if not point_serializer.is_valid():
+        address.delete()
+        return Response(point_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    point_serializer.save()
+    return Response(point_serializer.data, status=status.HTTP_201_CREATED)
 
 
-def route_delete(request, route_id):
-    """Delete a route"""
-    route = get_object_or_404(Route, pk=route_id)
-
-    if request.method == 'POST':
-        route.delete()
-        return redirect('routes:index')
-    
-    return render(request, 'routes/route_delete.html', {
-        'route': route,
-        'view_name': 'route_delete'
-    })
-
-
-@require_http_methods(["POST"])
+@api_view(["DELETE"])
 def remove_point(request, point_id):
     """Remove the point from the route"""
     point = get_object_or_404(RoutePoint, pk=point_id)
@@ -159,4 +160,13 @@ def remove_point(request, point_id):
         point.sequence_number = i
         point.save()
 
-    return JsonResponse({'success': True})
+    return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+@api_view(["DELETE"])
+def remove_route(request, route_id):
+    # remove whole route
+    route = get_object_or_404(Route, pk=route_id)
+    route.delete()
+
+    return Response({'success': True}, status=status.HTTP_200_OK)

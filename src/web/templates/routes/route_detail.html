@@ -18,7 +18,7 @@
                 <tbody>
                     {% for point in points %}
                     <tr>
-                        <td>{{ point.address }}</td>
+                        <td>{{ point.address_text }}</td>
                         <td>{{ point.latitude }}</td>
                         <td>{{ point.longitude }}</td>
                     </tr>
@@ -27,8 +27,36 @@
             </table>
         </div>
     </div>
-    <form method="post" style="margin-top: 20px;">
-        {% csrf_token %}
-        <button type="submit" name="delete" value="1">Delete Route</button>
-    </form>
+    <button id="deleteRouteBtn" class="btn btn-danger">Delete Route</button>
+    <a href="{% url 'routes:route_update' route.id %}">
+        <button id="updateRouteBtn" class="btn">Update Route</button>
+    </a>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function (){
+        document.getElementById('deleteRouteBtn').addEventListener('click', function (){
+            if(confirm('Are you sure you want to delete this route?')) {
+                fetch('/api/routes/{{route.id}}', {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            //     redirect
+                            window.location.href = '{% url "routes:index" %}';
+                        }
+                    })
+                    .catch(error => console.log('Error:', error));
+            }
+        });
+    });
+</script>
+
+
 {% endblock %}
