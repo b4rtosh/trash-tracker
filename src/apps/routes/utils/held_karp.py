@@ -9,10 +9,13 @@ def generate_distances(n):
             distances[i][j] = distances[j][i] = random.randint(1,99)
     return distances
 
-def held_karp(dists):
-    print(dists)
-    n = len(dists)
 
+def held_karp(points_dict):
+    print(points_dict)
+
+    n = len(points_dict)
+    dists = list(points_dict.values())
+    keys = list(points_dict.keys())
     s = {}
 
     for k in range(1, n):
@@ -24,7 +27,6 @@ def held_karp(dists):
             bits = 0
             for bit in subset:
                 bits |= 1 << bit
-
 
             for k in subset:
                 prev = bits & ~(1 << k)
@@ -51,8 +53,8 @@ def held_karp(dists):
         bits = new_bits
 
     path.append(0)
-
-    return opt, list(reversed(path))
-
-
-print(held_karp(generate_distances(20)))
+    path = list(reversed(path))
+    print(opt, path)
+    # map indexes to the keys
+    order = [keys[i] for i in path]
+    return opt, order
