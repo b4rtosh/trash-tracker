@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Route, Address, RoutePoint
-from .serializers import  RouteSerializer, AddressSerializer, RoutePointSerializer
+from .serializers import RouteSerializer, AddressSerializer, RoutePointSerializer
 from .forms import RouteForm, AddressForm
 from .utils import coordinates as Coordinates
 import json
@@ -62,7 +62,7 @@ def route_create(request):
         'view_name': 'route_create',
         'map_html': map_html,
         'form': form
-    }) 
+    })
 
 
 def route_update(request, route_id):
@@ -72,7 +72,7 @@ def route_update(request, route_id):
 
     # serialize points
     points = RoutePointSerializer(route_points, many=True).data
-    
+
     if request.method == 'POST':
         form = RouteForm(request.POST, instance=route)
         if form.is_valid():
@@ -80,7 +80,7 @@ def route_update(request, route_id):
             return redirect('routes:route_detail', route_id=route_id)
     else:
         form = RouteForm(instance=route)
-    
+
     address_form = AddressForm()
 
     return render(request, 'routes/route_form.html', {
@@ -88,7 +88,7 @@ def route_update(request, route_id):
         'address_form': address_form,
         'route': route,
         'points': points,
-        'view_name': 'route_update' 
+        'view_name': 'route_update'
     })
 
 
@@ -101,13 +101,11 @@ class RouteViewSet(viewsets.ModelViewSet):
 def add_point(request, route_id):
     """Add a point to a route"""
     route = get_object_or_404(Route, pk=route_id)
-
-
     address_data = {
         'street': request.data.get('street', ''),
         'city': request.data.get('city', ''),
         'state': request.data.get('state', ''),
-        'posta_code': request.data.get('postal_code', ''),
+        'postal_code': request.data.get('postal_code', ''),
         'country': request.data.get('country', '')
     }
 

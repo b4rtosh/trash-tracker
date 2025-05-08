@@ -32,6 +32,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Sequence number</th>
                     <th>Address</th>
                     <th>Latitude</th>
                     <th>Longitude</th>
@@ -41,6 +42,7 @@
             <tbody id="pointsTable">
                 {% for point in points %}
                 <tr>
+                    <td>{{ point.sequence_number }}</td>
                     <td>{{ point.address_text }}</td>
                     <td>{{ point.latitude }}</td>
                     <td>{{ point.longitude }}</td>
@@ -91,6 +93,7 @@
                     const tbody = document.getElementById('pointsTable');
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                    <td>${data.sequence_number}</td>
                     <td>${data.address_text}</td>
                     <td>${data.latitude}</td>
                     <td>${data.longitude}</td>

@@ -10,7 +10,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Address</th>
+                        <th>Sequence number</th>
+                        <th>Street</th>
+                        <th>City</th>
+                        <th>Postal code</th>
+                        <th>Country</th>
                         <th>Latitude</th>
                         <th>Longitude</th>
                     </tr>
@@ -18,7 +22,11 @@
                 <tbody>
                     {% for point in points %}
                     <tr>
-                        <td>{{ point.address_text }}</td>
+                        <td>{{ point.sequence_number }}</td>
+                        <td>{{ point.street }}</td>
+                        <td>{{ point.city }}</td>
+                        <td>{{ point.postal_code }}</td>
+                        <td>{{ point.country }}</td>
                         <td>{{ point.latitude }}</td>
                         <td>{{ point.longitude }}</td>
                     </tr>
