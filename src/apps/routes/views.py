@@ -5,10 +5,15 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Route, Address, RoutePoint
 from .serializers import RouteSerializer, AddressSerializer, RoutePointSerializer
 from .forms import RouteForm, AddressForm
-from .utils import coordinates as Coordinates
-import json
+from .utils import coordinates as Coordinates, routing, held_karp
 import folium
 import polyline
+
+
+def test_distances(request):
+    distances = routing.create_list(4)
+    print(held_karp.held_karp(distances))
+    return redirect('routes:index')
 
 
 def index(request):
@@ -123,7 +128,8 @@ def add_point(request, route_id):
         return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
 
     # create route point
-    sequence = RoutePoint.objects.filter(route=route).count()
+    point_count = RoutePoint.objects.filter(route=route_id).count()
+    sequence = 0 if point_count == 0 else None
 
     point_data = {
         'route': route.id,
@@ -149,16 +155,24 @@ def remove_point(request, point_id):
     point = get_object_or_404(RoutePoint, pk=point_id)
     route_id = point.route.id
 
+    # check if start
+    is_start_point = point.sequence_number == 0
+
     address = point.address
     point.delete()
     address.delete()
 
     points = RoutePoint.objects.filter(route_id=route_id).order_by('sequence_number')
-    for i, point in enumerate(points):
-        point.sequence_number = i
-        point.save()
 
-    return Response({'success': True}, status=status.HTTP_200_OK)
+    if is_start_point and points.exists():
+        for point in points:
+            point.sequence_number = None
+            point.save()
+
+    return Response({
+        'success': True,
+        'start_removed': True,
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(["DELETE"])
