@@ -5,7 +5,7 @@
     <a href="{% url 'routes:route_create' %}" class="btn">Add New Route</a>
     <ul class="route-list">
         {% for route in routes %}
-            <li><a href="{% url 'route_detail' route.id %}">{{ route.name }}</a></li>
+            <li><a href="{% url 'routes:route_detail' route.id %}">{{ route.name }}</a></li>
         {% empty %}
             <li>No routes available.</li>
         {% endfor %}

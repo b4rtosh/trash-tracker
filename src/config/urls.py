@@ -22,6 +22,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('route/', include('apps.routes.urls')),
+    path('routes/', include('apps.routes.urls')),
+    path('api/', include('apps.routes.urls_api')),
     path('', lambda request: redirect('routes:index'), name='home'),
 ]
