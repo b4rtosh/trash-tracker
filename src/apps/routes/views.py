@@ -73,9 +73,7 @@ def route_create(request):
 def route_update(request, route_id):
     """Update an existing route"""
     route = get_object_or_404(Route, pk=route_id)
-    route_points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
 
-    # encoded route
     # Get all route points
     route_points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
 
@@ -91,7 +89,7 @@ def route_update(request, route_id):
 
     # Add markers for each point
     for point in route_points:
-        popup_text = f"{point.sequence_number}. {point.address.street}, {point.address.city}"
+        popup_text = f"{point.id}. {point.address.street}, {point.address.city}"
         folium.Marker(
             location=[point.latitude, point.longitude],
             popup=popup_text,
@@ -160,17 +158,12 @@ def add_point(request, route_id):
         # check if it should be code 400
         return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # create route point
-    last_point = RoutePoint.objects.filter(route=route).order_by('-sequence_number').first()
-    sequence = 0 if last_point is None else (last_point.sequence_number or 0) + 1
-
     point_data = {
         'route': route.id,
         'address': address.id,
         # add the actual geocoding with these two properties
         'latitude': coordinates['latitude'],
-        'longitude': coordinates['longitude'],
-        'sequence_number': sequence
+        'longitude': coordinates['longitude']
     }
 
     point_serializer = RoutePointSerializer(data=point_data)
