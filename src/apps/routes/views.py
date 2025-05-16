@@ -67,11 +67,41 @@ def route_create(request):
 def route_update(request, route_id):
     """Update an existing route"""
     route = get_object_or_404(Route, pk=route_id)
+
+    # Get all route points
     route_points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
+
+    # Default center coordinates
+    if route_points.exists():
+        lat_center = sum(point.latitude for point in route_points) / len(route_points)
+        lon_center = sum(point.longitude for point in route_points) / len(route_points)
+    else:
+        lat_center, lon_center = 51.107883, 17.038538  # Fallback
+
+    # Create map centered on points or Wroclaw
+    folium_map = folium.Map(location=[lat_center, lon_center], zoom_start=13 if route_points.exists() else 12)
+
+    # Add markers for each point
+    for point in route_points:
+        popup_text = f"{point.id}. {point.address.street}, {point.address.city}"
+        folium.Marker(
+            location=[point.latitude, point.longitude],
+            popup=popup_text,
+            tooltip=popup_text,
+            icon=folium.Icon(color="green", icon="map-marker")
+        ).add_to(folium_map)
+
+    # Optional: draw lines between points
+    if route_points.count() > 1:
+        coordinates = [(point.latitude, point.longitude) for point in route_points]
+        #For the blue line connecting the points, uncomment the line below:
+        #folium.PolyLine(coordinates, color='blue', weight=5, opacity=0.7).add_to(folium_map)
+
+    # generate map
+    map_html = folium_map._repr_html_()
 
     # serialize points
     points = RoutePointSerializer(route_points, many=True).data
-
     if request.method == 'POST':
         form = RouteForm(request.POST, instance=route)
         if form.is_valid():
@@ -87,7 +117,8 @@ def route_update(request, route_id):
         'address_form': address_form,
         'route': route,
         'points': points,
-        'view_name': 'route_update'
+        'view_name': 'route_update',
+        'map_html': map_html,
     })
 
 
@@ -105,7 +136,7 @@ def add_point(request, route_id):
         'city': request.data.get('city', ''),
         'state': request.data.get('state', ''),
         'postal_code': request.data.get('postal_code', ''),
-        'country': request.data.get('country', '')
+        'country': request.data.get('country', ''),
     }
 
     address_serializer = AddressSerializer(data=address_data)
@@ -121,17 +152,12 @@ def add_point(request, route_id):
         # check if it should be code 400
         return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # create route point
-    point_count = RoutePoint.objects.filter(route=route_id).count()
-    sequence = 0 if point_count == 0 else None
-
     point_data = {
         'route': route.id,
         'address': address.id,
         # add the actual geocoding with these two properties
         'latitude': coordinates['latitude'],
-        'longitude': coordinates['longitude'],
-        'sequence_number': sequence
+        'longitude': coordinates['longitude']
     }
 
     point_serializer = RoutePointSerializer(data=point_data)

@@ -25,9 +25,9 @@
 
 <!-- Map + Table -->
 <div style="display: flex; gap: 20px;">
-    <div style="flex: 1;">
-        {{ map_html|safe }}
-    </div>
+<div style="margin-top: 20px;">
+    {{ map_html|safe }}
+</div>
     <div style="flex: 1;">
         <table>
             <thead>
@@ -108,7 +108,7 @@
                 //     clear form inptus
                     form.reset();
             // Reload the page to update map
-            //         location.reload();
+                     location.reload();
                 })
                 .catch(error => console.log('Error:', error));
         });
@@ -140,7 +140,7 @@
                             }
 
                         //     reload to update map
-                        //     location.reload()
+                             location.reload()
                         }
                     })
                     .catch(error => console.error('Error', error));
