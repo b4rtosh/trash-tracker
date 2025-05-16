@@ -203,9 +203,16 @@ def remove_route(request, route_id):
 
     return Response({'success': True}, status=status.HTTP_200_OK)
 
+
 @api_view(["GET"])
 def optimize_route(request, route_id):
-    routing.optimize_points(route_id)
-    
 
+    try:
+        dist = routing.optimize_points(route_id)
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return redirect('routes:index')
