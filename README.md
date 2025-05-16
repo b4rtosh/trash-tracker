@@ -28,6 +28,21 @@ flowchart TD
     backend --> |Delivers coordinates| user
 ```
 
+## How to set up database
+1. Install Docker
+2. Install Docker Compose
+3. Run ```docker-compose up -d``` in the persistence directory
+
+## How to set up the OSRM
+1. Install Docker
+2. Install Docker Compose
+2. Download the map data from [Geofabrik](https://download.geofabrik.de/europe/poland/dolnoslaskie.html)
+3. Move it to the osrm directory
+4. Run ```docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/dolnoslaskie-latest.osm.pbf```
+5. Run ```docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-partition /data/dolnoslaskie-latest.osrm```
+6. Run ```docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-customize /data/dolnoslaskie-latest.osrm```
+7. Run ```docker run -t -i -p 5000:5000 -v "${PWD}:/data" osrm/osrm-backend osrm-routed --algorithm mld /data/dolnoslaskie-latest.osrm```
+
 ## How to run the app
 1. Clone the repository
 2. Run ```pip install -r .\src\requirements\requirements.txt```
