@@ -65,3 +65,5 @@ src/.env
 .env.local
 .DS_Store
 node_modules/
+
+migrations/

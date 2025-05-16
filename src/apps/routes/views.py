@@ -5,15 +5,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Route, Address, RoutePoint
 from .serializers import RouteSerializer, AddressSerializer, RoutePointSerializer
 from .forms import RouteForm, AddressForm
-from .utils import coordinates as Coordinates, routing, held_karp
+from .utils import coordinates as Coordinates, routing
 import folium
 import polyline
-
-
-def test_distances(request):
-    distances = routing.create_list(4)
-    print(held_karp.held_karp(distances))
-    return redirect('routes:index')
 
 
 def index(request):
@@ -182,3 +176,10 @@ def remove_route(request, route_id):
     route.delete()
 
     return Response({'success': True}, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+def optimize_route(request, route_id):
+    routing.optimize_points(route_id)
+    
+
+    return redirect('routes:index')

@@ -11,6 +11,7 @@
                 <thead>
                     <tr>
                         <th>Sequence number</th>
+                        <th>Id</th>
                         <th>Street</th>
                         <th>City</th>
                         <th>Postal code</th>
@@ -23,6 +24,7 @@
                     {% for point in points %}
                     <tr>
                         <td>{{ point.sequence_number }}</td>
+                        <td>{{ point.id }}</td>
                         <td>{{ point.street }}</td>
                         <td>{{ point.city }}</td>
                         <td>{{ point.postal_code }}</td>

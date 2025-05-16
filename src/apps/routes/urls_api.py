@@ -13,4 +13,5 @@ urlpatterns = [
     path('routes/<int:route_id>/points', views.add_point, name='add_point'),
     path('points/<int:point_id>', views.remove_point, name='remove_point'),
     path('routes/<int:route_id>', views.remove_route, name='remove_route'),
+    path('routes/<int:route_id>/optimize', views.optimize_route, name='optimize_points')
 ]
