@@ -18,17 +18,47 @@ def index(request):
         'view_name': 'index'
     })
 
+import folium
+import polyline
+import requests
+from django.shortcuts import render, get_object_or_404
+from .models import Route, RoutePoint
+
 
 def route_detail(request, route_id):
-    """Display details for a specific route"""
     route = get_object_or_404(Route, pk=route_id)
-    route_points = RoutePoint.objects.filter(route=route).order_by('sequence_number')
-    # serialize points
-    points = RoutePointSerializer(route_points, many=True).data
-    return render(request, 'routes/route_detail.html', {
-        'route': route,
-        'points': points,
-        'view_name': 'route_detail'
+    points = RoutePoint.objects.filter(route=route).order_by("sequence_number")
+
+    coords = [(point.longitude, point.latitude) for point in points]  # OSRM: lon, lat
+
+    # Ustaw środek mapy
+    map_center = (coords[0][1], coords[0][0]) if coords else (51.107883, 17.038538)
+    folium_map = folium.Map(location=map_center, zoom_start=15)
+
+    # Wywołanie OSRM tylko jeśli są min. 2 punkty
+    if len(coords) >= 2:
+        coords_str = ";".join(f"{lon},{lat}" for lon, lat in coords)
+        osrm_url = f"http://localhost:5000/route/v1/driving/{coords_str}?overview=full"
+
+        response = requests.get(osrm_url)
+        if response.status_code == 200:
+            osrm_data = response.json()
+            geometry = osrm_data["routes"][0]["geometry"]
+            decoded_path = polyline.decode(geometry)  # (lat, lon)
+
+            folium.PolyLine(
+                locations=decoded_path,
+                color="blue",
+                weight=5,
+                opacity=0.8
+            ).add_to(folium_map)
+
+    map_html = folium_map._repr_html_()
+
+    return render(request, "routes/route_detail.html", {
+        "route": route,
+        "points": points,
+        "map_html": map_html,
     })
 
 
