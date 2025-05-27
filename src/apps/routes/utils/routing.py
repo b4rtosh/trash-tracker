@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from ..models import Route, RoutePoint, RouteSegment
+from ..models import Route, RoutePoint
 import requests
 import logging
 from . import held_karp
@@ -43,9 +43,6 @@ def request_distance(latitude1, longitude1, latitude2, longitude2):
         logging.error(f"An unexpected error occurred while fetching distance from {url}: {ex}")
         return None
 
-    
-        
-    
 
 def create_list(route_points):
     matrix_of_points = dict()

@@ -30,11 +30,3 @@ class RoutePoint(models.Model):
     arrival_time = models.TimeField(null=True, blank=True)
     # departure_time = models.TimeField(null=True, blank=True)
 
-
-class RouteSegment(models.Model):
-    route = models.ForeignKey(Route, on_delete=models.CASCADE)
-    start_point = models.ForeignKey(RoutePoint, on_delete=models.PROTECT, related_name='segment_starts')
-    end_point = models.ForeignKey(RoutePoint, on_delete=models.PROTECT, related_name='segment_ends')
-    distance = models.DecimalField(max_digits=6, decimal_places=2)  # km
-    duration = models.PositiveIntegerField(default=0, blank=True)  # seconds
-    polyline = models.CharField(max_length=256)
