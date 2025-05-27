@@ -2,6 +2,7 @@
 {% block content %}
     <h2>{{ route.name }}</h2>
     <p><strong>Estimated Time:</strong> {{ route.duration }}</p>
+<p><strong>Estimated distance:</strong> {{ route.distance }}</p>
     <div style="display: flex; gap: 20px; margin-top: 20px;">
         <div style="flex: 1;">
             {{ map_html|safe }}
@@ -30,13 +31,17 @@
         });
     </script>
 {% endif %}
+            {% if needs_optimization %}
+    <div class="alert alert-warning" style="padding: 10px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 4px; margin-bottom: 15px;">
+        <strong>Note:</strong> Some points don't have a sequence number. Please optimize the route first.
+    </div>
+{% endif %}
         </div>
         <div style="flex: 1;">
             <table>
             <thead>
                 <tr>
                     <th>Sequence number</th>
-                    <th>Id</th>
                     <th>Address</th>
                     <th>Latitude</th>
                     <th>Longitude</th>
@@ -47,8 +52,7 @@
                 {% for point in points %}
                 <tr>
                     <td>{{ point.sequence_number }}</td>
-                    <td>{{ point.id }}</td>
-                    <td>{{ point.address.street }}, {{ point.address.city }}</td>
+                    <td>{{ point.street }}, {{ point.city }}</td>
                     <td>{{ point.latitude }}</td>
                     <td>{{ point.longitude }}</td>
                     <td>
@@ -68,6 +72,9 @@
     <a href="{% url 'routes:route_update' route.id %}">
         <button id="updateRouteBtn" class="btn">Update Route</button>
     </a>
+<a href="/api/routes/{{route.id}}/optimize">
+    <button id="optimizeRouteBtn" class="btn">Optimize Route</button>
+</a>
 
 
 <script>

@@ -8,6 +8,7 @@ from .forms import RouteForm, AddressForm
 from .utils import coordinates as Coordinates, routing
 import folium
 import polyline
+import requests
 
 
 def index(request):
@@ -18,34 +19,60 @@ def index(request):
         'view_name': 'index'
     })
 
-import folium
-import polyline
-import requests
-from django.shortcuts import render, get_object_or_404
-from .models import Route, RoutePoint
-
 
 def route_detail(request, route_id):
+    """Display details for a specific route"""
     route = get_object_or_404(Route, pk=route_id)
     points = RoutePoint.objects.filter(route=route).order_by("sequence_number")
 
-    coords = [(point.longitude, point.latitude) for point in points]  # OSRM: lon, lat
+    needs_optimization = points.filter(sequence_number__isnull=True).exists()
 
-    # Ustaw środek mapy
+    # Ensure all coordinates are float (avoid Decimal serialization issues)
+    coords = [(float(point.longitude), float(point.latitude)) for point in points]  # OSRM: lon, lat
+    coords.append((float(points[0].longitude), float(points[0].latitude))) if coords else None
+
+    # Default map center
     map_center = (coords[0][1], coords[0][0]) if coords else (51.107883, 17.038538)
     folium_map = folium.Map(location=map_center, zoom_start=15)
 
-    # Wywołanie OSRM tylko jeśli są min. 2 punkty
-    if len(coords) >= 2:
+    # Collect all coordinates for fitting the map bounds
+    all_locations = []
+
+    # Add markers for each route point
+    for point in points:
+        popup_text = f"{point.id}. {point.address.street}, {point.address.city}"
+        location = [float(point.latitude), float(point.longitude)]
+        all_locations.append(location)
+
+        if point.sequence_number == 0:
+            # Special START marker
+            folium.Marker(
+                location=location,
+                popup=f"START: {popup_text}",
+                tooltip="Start Point",
+                icon=folium.Icon(color="red", icon="play")
+            ).add_to(folium_map)
+        else:
+            # Regular marker
+            folium.Marker(
+                location=location,
+                popup=popup_text,
+                tooltip=popup_text,
+                icon=folium.Icon(color="green", icon="map-marker")
+            ).add_to(folium_map)
+
+    # Call OSRM only if 2 or more points and no optimization is needed
+    if len(coords) >= 2 and not needs_optimization:
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in coords)
         osrm_url = f"http://localhost:5000/route/v1/driving/{coords_str}?overview=full"
-
+        print(osrm_url)
         response = requests.get(osrm_url)
         if response.status_code == 200:
             osrm_data = response.json()
             geometry = osrm_data["routes"][0]["geometry"]
+            route.distance = f"{round(osrm_data['routes'][0]['distance'] / 1000, 2)} km"
+            route.duration = f"{round(osrm_data['routes'][0]['duration'] / 60, 2)} min"
             decoded_path = polyline.decode(geometry)  # (lat, lon)
-
             folium.PolyLine(
                 locations=decoded_path,
                 color="blue",
@@ -53,12 +80,21 @@ def route_detail(request, route_id):
                 opacity=0.8
             ).add_to(folium_map)
 
-    map_html = folium_map._repr_html_()
+            # Add polyline points to all_locations for fitting
+            all_locations.extend([[float(lat), float(lon)] for lat, lon in decoded_path])
 
+    # Adjust map to fit all points
+    if all_locations:
+        folium_map.fit_bounds(all_locations)
+
+    map_html = folium_map._repr_html_()
+    serialized_points = RoutePointSerializer(points, many=True).data
     return render(request, "routes/route_detail.html", {
         "route": route,
-        "points": points,
+        "points": serialized_points,
         "map_html": map_html,
+        'view_name': 'route_detail',
+        'needs_optimization': needs_optimization
     })
 
 
@@ -160,43 +196,46 @@ class RouteViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 def add_point(request, route_id):
     """Add a point to a route"""
-    route = get_object_or_404(Route, pk=route_id)
-    address_data = {
-        'street': request.data.get('street', ''),
-        'city': request.data.get('city', ''),
-        'state': request.data.get('state', ''),
-        'postal_code': request.data.get('postal_code', ''),
-        'country': request.data.get('country', ''),
-    }
+    try:
+        route = get_object_or_404(Route, pk=route_id)
+        address_data = {
+            'street': request.data.get('street', ''),
+            'city': request.data.get('city', ''),
+            'state': request.data.get('state', ''),
+            'postal_code': request.data.get('postal_code', ''),
+            'country': request.data.get('country', ''),
+        }
 
-    address_serializer = AddressSerializer(data=address_data)
-    if not address_serializer.is_valid():
-        return Response(address_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        address_serializer = AddressSerializer(data=address_data)
+        if not address_serializer.is_valid():
+            return Response(address_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    address = address_serializer.save()
+        address = address_serializer.save()
 
-    # get coordinates
-    coordinates = Coordinates.get_coordinates(address.city, address.street)
-    if not coordinates:
-        address.delete()
-        # check if it should be code 400
-        return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
+        # get coordinates
+        coordinates = Coordinates.get_coordinates(address.city, address.street)
+        if not coordinates:
+            address.delete()
+            # check if it should be code 400
+            return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
 
-    point_data = {
-        'route': route.id,
-        'address': address.id,
-        # add the actual geocoding with these two properties
-        'latitude': coordinates['latitude'],
-        'longitude': coordinates['longitude']
-    }
+        point_data = {
+            'route': route.id,
+            'address': address.id,
+            # add the actual geocoding with these two properties
+            'latitude': coordinates['latitude'],
+            'longitude': coordinates['longitude']
+        }
 
-    point_serializer = RoutePointSerializer(data=point_data)
-    if not point_serializer.is_valid():
-        address.delete()
-        return Response(point_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        point_serializer = RoutePointSerializer(data=point_data)
+        if not point_serializer.is_valid():
+            address.delete()
+            return Response(point_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    point_serializer.save()
-    return Response(point_serializer.data, status=status.HTTP_201_CREATED)
+        point_serializer.save()
+        return Response(point_serializer.data, status=status.HTTP_201_CREATED)
+    except Exception as ex:
+        print(ex)
 
 
 @api_view(["DELETE"])
@@ -221,7 +260,7 @@ def remove_point(request, point_id):
 
     return Response({
         'success': True,
-        'start_removed': True,
+        'start_removed': is_start_point,
     }, status=status.HTTP_200_OK)
 
 
@@ -236,13 +275,25 @@ def remove_route(request, route_id):
 
 @api_view(["GET"])
 def optimize_route(request, route_id):
-
     try:
         dist = routing.optimize_points(route_id)
-
     except Exception as e:
         return Response({
             'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return redirect('routes:index')
+    return redirect('routes:route_detail', route_id=route_id)
+
+
+@api_view(["PUT"])
+def set_start_point(reqeust, route_id, point_id):
+    route = get_object_or_404(Route, pk=route_id)
+    new_start_point = get_object_or_404(RoutePoint, pk=point_id)
+
+    new_start_point.sequence_number = 0
+    new_start_point.save()
+
+    return Response({
+        'success': True,
+        'message': 'New starting point set successfully'
+    }, status=status.HTTP_200_OK)

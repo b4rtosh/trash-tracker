@@ -18,54 +18,55 @@
     <input type="text" name="street" id="id_street" placeholder="Street" required style="padding: 10px; width: 70%;">
     <input type="text" name="city" id="id_city" placeholder="City" required style="padding: 10px; width: 70%;">
     <input type="text" name="state" id="id_state" placeholder="State" required style="padding: 10px; width: 70%;">
-    <input type="text" name="postal_code" id="id_postal_code" placeholder="Postal code" required style="padding: 10px; width: 70%;">
+    <input type="text" name="postal_code" id="id_postal_code" placeholder="Postal code" required
+           style="padding: 10px; width: 70%;">
     <input type="text" name="country" id="id_country" placeholder="Country" required style="padding: 10px; width: 70%;">
     <button type="button" id="addPointBtn" name="add_point" class="btn">Add Point</button>
 </form>
 
 <!-- Map + Table -->
 <div style="display: flex; gap: 20px;">
-<div style="margin-top: 20px;">
-    {{ map_html|safe }}
-</div>
+    <div style="margin-top: 20px;">
+        {{ map_html|safe }}
+    </div>
     <div style="flex: 1;">
         <table>
             <thead>
-                <tr>
-                    <th>Sequence number</th>
-                    <th>Id</th>
-                    <th>Address</th>
-                    <th>Latitude</th>
-                    <th>Longitude</th>
-                    <th>Actions</th>
-                </tr>
+            <tr>
+                <th>Sequence number</th>
+                <th>Id</th>
+                <th>Address</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Actions</th>
+            </tr>
             </thead>
             <tbody id="pointsTable">
-                {% for point in points %}
-                <tr>
-                    <td>{{ point.sequence_number }}</td>
-                    <td>{{ point.id }}</td>
-                    <td>{{ point.address_text }}</td>
-                    <td>{{ point.latitude }}</td>
-                    <td>{{ point.longitude }}</td>
-                    <td>
-                            <button type="button" class="btn delete-point" data-point-id="{{ point.id }}">Delete</button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr id="no-points-row">
-                    <td colspan="4" style="text-align:center;">No points added yet.</td>
-                </tr>
-                {% endfor %}
+            {% for point in points %}
+            <tr>
+                <td>{{ point.sequence_number }}</td>
+                <td>{{ point.id }}</td>
+                <td>{{ point.address_text }}</td>
+                <td>{{ point.latitude }}</td>
+                <td>{{ point.longitude }}</td>
+                <td>
+                    <button type="button" class="btn delete-point" data-point-id="{{ point.id }}">Delete</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="no-points-row">
+                <td colspan="4" style="text-align:center;">No points added yet.</td>
+            </tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    //     Add point button handler
-        document.getElementById('addPointBtn').addEventListener('click', function (){
+    document.addEventListener('DOMContentLoaded', function () {
+        //     Add point button handler
+        document.getElementById('addPointBtn').addEventListener('click', function () {
             const form = document.getElementById('pointForm');
             const formData = new FormData(form)
 
@@ -85,13 +86,13 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                //     remove empty row
+                    //     remove empty row
                     const noPointsRow = document.getElementById('no-points-row');
-                    if (noPointsRow){
+                    if (noPointsRow) {
                         noPointsRow.remove();
                     }
 
-                //     add new point to the table
+                    //     add new point to the table
                     const tbody = document.getElementById('pointsTable');
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -105,16 +106,16 @@
                     </td>
 `;
                     tbody.appendChild(tr);
-                //     clear form inptus
+                    //     clear form inptus
                     form.reset();
-            // Reload the page to update map
-                     location.reload();
+                    // Reload the page to update map
+                    location.reload();
                 })
                 .catch(error => console.log('Error:', error));
         });
-    //     delete the point
-        document.getElementById('pointsTable').addEventListener('click', function(){
-            if (event.target.classList.contains('delete-point')){
+        //     delete the point
+        document.getElementById('pointsTable').addEventListener('click', function (event) { // Added event parameter
+            if (event.target.classList.contains('delete-point')) {
                 const pointId = event.target.dataset.pointId;
 
                 fetch(`/api/points/${pointId}`, {
@@ -126,27 +127,135 @@
                 })
                     .then(response => response.json())
                     .then(data => {
-                        if (data.success){
-                        //     remove row from the table
+                        if (data.success) {
+                            // remove row from the table
                             event.target.closest('tr').remove();
 
-                        //     add "no points" if table is empty
+                            // add "no points" if table is empty
                             const tbody = document.getElementById('pointsTable');
-                            if (tbody.children.length === 0){
+                            if (tbody.children.length === 0) {
                                 const tr = document.createElement('tr');
                                 tr.id = 'no-points-row';
-                                tr.innerHTML = '<td colspan="4" style="text-align:center;">No points added yet.</td>';
+                                tr.innerHTML = '<td colspan="6" style="text-align:center;">No points added yet.</td>'; // Fixed colspan to 6
                                 tbody.appendChild(tr);
+                                location.reload();
+                                return;
                             }
 
-                        //     reload to update map
-                             location.reload()
+                            if (data.start_removed) {
+                                // get remaining points
+                                const remainingPoints = Array.from(tbody.querySelectorAll('tr')).map(row => {
+                                    const pointId = row.querySelector('.delete-point').dataset.pointId; // Fixed: data → dataset
+                                    const address = row.cells[2].textContent;
+                                    return {id: pointId, address: address};
+                                });
+
+                                showStartPointSelector(remainingPoints, "{{ route.id }}" );
+                            } else {
+                                location.reload();
+                            }
                         }
                     })
                     .catch(error => console.error('Error', error));
             }
         });
     });
+
+    function showStartPointSelector(points, routeId) {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.zIndex = '1000';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+
+        // Create modal dialog
+        const modal = document.createElement('div');
+        modal.style.backgroundColor = '#222';
+        modal.style.border = '1px solid #444';
+        modal.style.padding = '20px';
+        modal.style.borderRadius = '5px';
+        modal.style.maxWidth = '500px';
+        modal.style.width = '100%';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Select new starting point';
+        title.style.color = 'lightgreen';
+        modal.appendChild(title);
+
+        const message = document.createElement('p');
+        message.textContent = 'The starting point was removed. Please select a new starting point:';
+        message.style.marginBottom = '15px';
+        modal.appendChild(message);
+
+        // Create select dropdown with points
+        const select = document.createElement('select');
+        select.style.width = '100%';
+        select.style.padding = '8px';
+        select.style.marginBottom = '20px';
+        select.style.backgroundColor = '#333';
+        select.style.color = '#fff';
+        select.style.border = '1px solid #555';
+
+        points.forEach(point => {
+            const option = document.createElement('option');
+            option.value = point.id;
+            option.textContent = point.address;
+            select.appendChild(option);
+        });
+        modal.appendChild(select);
+
+        // Add buttons container
+        const btnContainer = document.createElement('div');
+        btnContainer.style.display = 'flex';
+        btnContainer.style.justifyContent = 'flex-end';
+        btnContainer.style.gap = '10px';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.className = 'btn';
+        cancelBtn.onclick = () => {
+            document.body.removeChild(overlay);
+            location.reload();
+        };
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Set as Start';
+        confirmBtn.className = 'btn';
+        confirmBtn.onclick = () => {
+            const selectedId = select.value;
+
+            fetch(`/api/routes/${routeId}/points/${selectedId}/set-start/`, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.body.removeChild(overlay);
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        };
+
+        btnContainer.appendChild(cancelBtn);
+        btnContainer.appendChild(confirmBtn);
+        modal.appendChild(btnContainer);
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+    }
+
 </script>
 {% else %}
 <!--display map for new routes-->
