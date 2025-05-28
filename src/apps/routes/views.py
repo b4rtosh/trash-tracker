@@ -62,6 +62,7 @@ def route_detail(request, route_id):
             ).add_to(folium_map)
 
     # Call OSRM only if 2 or more points and no optimization is needed
+
     if len(coords) >= 2 and not needs_optimization:
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in coords)
         osrm_url = f"http://localhost:5000/route/v1/driving/{coords_str}?overview=full"
@@ -70,8 +71,10 @@ def route_detail(request, route_id):
         if response.status_code == 200:
             osrm_data = response.json()
             geometry = osrm_data["routes"][0]["geometry"]
-            route.distance = f"{round(osrm_data['routes'][0]['distance'] / 1000, 2)} km"
-            route.duration = f"{round(osrm_data['routes'][0]['duration'] / 60, 2)} min"
+
+            route.distance = f"{round(osrm_data["routes"][0]["distance"] / 1000, 2)} km"
+            route.duration = f"{round(osrm_data["routes"][0]["duration"] / 60, 2)} min"
+
             decoded_path = polyline.decode(geometry)  # (lat, lon)
             folium.PolyLine(
                 locations=decoded_path,
@@ -86,6 +89,7 @@ def route_detail(request, route_id):
     # Adjust map to fit all points
     if all_locations:
         folium_map.fit_bounds(all_locations)
+
 
     map_html = folium_map._repr_html_()
     serialized_points = RoutePointSerializer(points, many=True).data
