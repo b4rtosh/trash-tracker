@@ -23,7 +23,7 @@ def request_distance(latitude1, longitude1, latitude2, longitude2):
 
     except requests.exceptions.HTTPError as http_err:
         logging.error(
-            f"HTTP error occurred for {url}: {http_err} - Response: {api_response.text if 'api_response' in locals() else 'N/A'}")
+            f"HTTP error occurred for {url}: {http_err} - Response: {response.text if 'api_response' in locals() else 'N/A'}")
         return None
     except requests.exceptions.ConnectionError as conn_err:
         logging.error(f"Connection error for {url}: {conn_err}")
@@ -77,12 +77,29 @@ def create_list(route_points):
 
 def optimize_points(route_id):
     route = get_object_or_404(Route, pk=route_id)
-    route_points = (RoutePoint.objects.filter(route=route).only("id", "sequence_number", "latitude", "longitude")
+    all_route_points = (RoutePoint.objects.filter(route=route).only("id", "sequence_number", "latitude", "longitude")
                     .order_by('sequence_number'))
-    if not route_points.filter(sequence_number__isnull=True).exists():
+    # return if all sequence numbers are present
+    if not all_route_points.filter(sequence_number__isnull=True).exists():
         return
-    route_points_dist = {rp.id: rp for rp in route_points}
-    distance_matrix_dict = create_list(route_points)
+
+    start_point = None
+    other_points = []
+
+    for point in all_route_points:
+        if point.sequence_number == 0:
+            start_point = point
+        else:
+            other_points.append(point)
+
+    # Put the start point first in the ordered list
+    ordered_points = []
+    if start_point:
+        ordered_points.append(start_point)
+    ordered_points.extend(other_points)
+
+    route_points_dist = {rp.id: rp for rp in ordered_points}
+    distance_matrix_dict = create_list(ordered_points)
     dist, order = held_karp.held_karp(distance_matrix_dict)
     print(order)
 
