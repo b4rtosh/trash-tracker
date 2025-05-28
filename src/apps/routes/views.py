@@ -27,13 +27,42 @@ def route_detail(request, route_id):
 
     needs_optimization = points.filter(sequence_number__isnull=True).exists()
 
-    coords = [(point.longitude, point.latitude) for point in points]  # OSRM: lon, lat
-    coords.append((points[0].longitude, points[0].latitude))
-    # Ustaw środek mapy
+    # Ensure all coordinates are float (avoid Decimal serialization issues)
+    coords = [(float(point.longitude), float(point.latitude)) for point in points]  # OSRM: lon, lat
+    coords.append((float(points[0].longitude), float(points[0].latitude))) if coords else None
+
+    # Default map center
     map_center = (coords[0][1], coords[0][0]) if coords else (51.107883, 17.038538)
     folium_map = folium.Map(location=map_center, zoom_start=15)
 
-    # Wywołanie OSRM tylko jeśli są min. 2 punkty
+    # Collect all coordinates for fitting the map bounds
+    all_locations = []
+
+    # Add markers for each route point
+    for point in points:
+        popup_text = f"{point.id}. {point.address.street}, {point.address.city}"
+        location = [float(point.latitude), float(point.longitude)]
+        all_locations.append(location)
+
+        if point.sequence_number == 0:
+            # Special START marker
+            folium.Marker(
+                location=location,
+                popup=f"START: {popup_text}",
+                tooltip="Start Point",
+                icon=folium.Icon(color="red", icon="play")
+            ).add_to(folium_map)
+        else:
+            # Regular marker
+            folium.Marker(
+                location=location,
+                popup=popup_text,
+                tooltip=popup_text,
+                icon=folium.Icon(color="green", icon="map-marker")
+            ).add_to(folium_map)
+
+    # Call OSRM only if 2 or more points and no optimization is needed
+
     if len(coords) >= 2 and not needs_optimization:
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in coords)
         osrm_url = f"http://localhost:5000/route/v1/driving/{coords_str}?overview=full"
@@ -42,8 +71,10 @@ def route_detail(request, route_id):
         if response.status_code == 200:
             osrm_data = response.json()
             geometry = osrm_data["routes"][0]["geometry"]
+
             route.distance = f"{round(osrm_data["routes"][0]["distance"] / 1000, 2)} km"
             route.duration = f"{round(osrm_data["routes"][0]["duration"] / 60, 2)} min"
+
             decoded_path = polyline.decode(geometry)  # (lat, lon)
             folium.PolyLine(
                 locations=decoded_path,
@@ -51,6 +82,14 @@ def route_detail(request, route_id):
                 weight=5,
                 opacity=0.8
             ).add_to(folium_map)
+
+            # Add polyline points to all_locations for fitting
+            all_locations.extend([[float(lat), float(lon)] for lat, lon in decoded_path])
+
+    # Adjust map to fit all points
+    if all_locations:
+        folium_map.fit_bounds(all_locations)
+
 
     map_html = folium_map._repr_html_()
     serialized_points = RoutePointSerializer(points, many=True).data

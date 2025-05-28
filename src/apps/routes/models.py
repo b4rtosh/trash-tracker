@@ -29,4 +29,4 @@ class RoutePoint(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     arrival_time = models.TimeField(null=True, blank=True)
     # departure_time = models.TimeField(null=True, blank=True)
-
+    
