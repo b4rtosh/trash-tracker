@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
@@ -223,12 +225,14 @@ def add_point(request, route_id):
             # check if it should be code 400
             return Response({'error': 'Could not geocode address'}, status=status.HTTP_400_BAD_REQUEST)
 
+        is_first = not RoutePoint.objects.filter(route_id=route.id).exists()
         point_data = {
             'route': route.id,
             'address': address.id,
             # add the actual geocoding with these two properties
             'latitude': coordinates['latitude'],
-            'longitude': coordinates['longitude']
+            'longitude': coordinates['longitude'],
+            'sequence_number': 0 if is_first else None,
         }
 
         point_serializer = RoutePointSerializer(data=point_data)

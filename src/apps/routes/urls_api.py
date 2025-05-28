@@ -14,4 +14,5 @@ urlpatterns = [
     path('points/<int:point_id>', views.remove_point, name='remove_point'),
     path('routes/<int:route_id>', views.remove_route, name='remove_route'),
     path('routes/<int:route_id>/optimize', views.optimize_route, name='optimize_points'),
-    path('routes/<int:route_id>/points/<int:point_id>/set-start/', views.set_start_point, name='set_start_point'),
+    path('routes/<int:route_id>/points/<int:point_id>/set-start/', views.set_start_point, name='set_start_point')
+    ]

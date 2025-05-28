@@ -45,19 +45,15 @@
                     <th>Address</th>
                     <th>Latitude</th>
                     <th>Longitude</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="pointsTable">
                 {% for point in points %}
                 <tr>
                     <td>{{ point.sequence_number }}</td>
-                    <td>{{ point.street }}, {{ point.city }}</td>
+                    <td>{{ point.street }}, {{ point.city }} {{ point.postal_code }}, {{ point.country }}</td>
                     <td>{{ point.latitude }}</td>
                     <td>{{ point.longitude }}</td>
-                    <td>
-                            <button type="button" class="btn delete-point" data-point-id="{{ point.id }}">Delete</button>
-                    </td>
                 </tr>
                 {% empty %}
                 <tr id="no-points-row">

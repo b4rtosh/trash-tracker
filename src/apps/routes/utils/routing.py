@@ -79,7 +79,8 @@ def optimize_points(route_id):
     route = get_object_or_404(Route, pk=route_id)
     route_points = (RoutePoint.objects.filter(route=route).only("id", "sequence_number", "latitude", "longitude")
                     .order_by('sequence_number'))
-
+    if not route_points.filter(sequence_number__isnull=True).exists():
+        return
     route_points_dist = {rp.id: rp for rp in route_points}
     distance_matrix_dict = create_list(route_points)
     dist, order = held_karp.held_karp(distance_matrix_dict)
