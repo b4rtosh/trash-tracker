@@ -24,5 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('routes/', include('apps.routes.urls')),
     path('api/', include('apps.routes.urls_api')),
-    path('', lambda request: redirect('routes:index'), name='home'),
+    path("", lambda request: redirect("login"), name="home"),
+    path("accounts/", include("django.contrib.auth.urls")),
+    path("accounts/", include("apps.accounts.urls")),
 ]
