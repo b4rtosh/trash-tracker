@@ -12,18 +12,16 @@ graph TB
         TLS --> WAF --> AntiDDoS --> Bot
     end
 
-
     subgraph AWS ["AWS Cloud"]
         subgraph VPC ["Virtual Private Cloud"]
+            direction TB
             subgraph Public ["Public Subnet"]
                 TLS2["TLS Certificate<br/>AWS Certificate Manager"]
                 
                 subgraph PubAZ1["Availability Zone A"]
-                    NATGW1["NAT Gateway"]
                     ALB1["Application Load Balancer<br/>• HTTPS 443<br/>• TLS Termination<br/>• Port Forwarding"]
                 end
                 subgraph PubAZ2["Availability Zone B"]
-                    NATGW2["NAT Gateway"]
                     ALB2["Application Load Balancer<br/>• HTTPS 443<br/>• TLS Termination<br/>• Port Forwarding"]
                 end
                 TLS2 --> ALB1
@@ -32,16 +30,17 @@ graph TB
             
             subgraph Private ["Private Subnet"]
                 subgraph Fargate ["ECS Fargate"]
-                    subgraph AZ1["AZ A"]
-                        Task11["Django App"]
-                        Task12["OSRM App"]
-                        EC21["EC2 with IDS"]   
-                    end
                     subgraph AZ2["AZ B"]
                         Task21["Django App"]
                         Task22["OSRM App"]
                         EC22["EC2 with IDS"]
                     end
+                    subgraph AZ1["AZ A"]
+                        Task11["Django App"]
+                        Task12["OSRM App"]
+                        EC21["EC2 with IDS"]   
+                    end
+
                 end
             end
             
@@ -52,12 +51,6 @@ graph TB
             end
         end
     end
-
-    %% Force layout order
-    AZ1 ~~~ AZ2
-    PubAZ1 ~~~ PubAZ2
-    Public ~~~ Private
-    Private ~~~ AuroraDB
 
     %% User to Cloudflare
     User -->|"1. DNS Query"| DNS
@@ -73,15 +66,11 @@ graph TB
 
     %% App Communication
     Task11 <-->|"2. Distance Request"| Task12
-    Task21 <-->|"OSRM Routing"| Task22
 
     %% Database Access
     Task11 -->|"1. Read"| DBR1
     Task11 -->|"4. Write"| DBW
-    Task21 -->|"Read"| DBR2
-    Task21 -->|"Write"| DBW
 
     %% Response
-    Task11 -->|"5. Response"| NATGW1 --> User
-    Task21 --> NATGW2
+    Task11 --> ALB1 --> CF --> User
 ```
