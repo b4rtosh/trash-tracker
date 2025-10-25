@@ -21,17 +21,17 @@ module "alb_sg" {
       to_port                  = 80
       protocol                 = "tcp"
       description              = "Request redirected to the ECS"
-      source_security_group_id = module.ecs_sg.security_group_id
+      source_security_group_id = module.ecs_app_sg.security_group_id
     }
   ]
 }
 
 
-module "ecs_sg" {
+module "ecs_app_sg" {
   source = "terraform-aws-modules/security-group/aws"
 
-  name        = "${var.app-name}-ecs-sg"
-  description = "Security group for ecs"
+  name        = "${var.app-name}-ecs-app-sg"
+  description = "Security group for ECS app container"
   vpc_id      = module.vpc.vpc_id
 
   ingress_with_source_security_group_id = [
@@ -43,5 +43,59 @@ module "ecs_sg" {
       source_security_group_id = module.alb_sg.security_group_id
     }
   ]
+
+  egress_with_cidr_blocks = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = "0.0.0.0/0"
+      description = "Allow all outbound traffic"
+    }
+  ]
+
+  egress_with_source_security_group_id = [
+    {
+      from_port                = 5000
+      to_port                  = 5000
+      protocol                 = "tcp"
+      description              = "Request to calculate the track by OSRM"
+      source_security_group_id = module.ecs_osrm_sg.security_group_id
+    }
+  ]
 }
 
+module "ecs_osrm_sg" {
+  source = "terraform-aws-modules/security-group/aws"
+
+  name        = "${var.app-name}-ecs-osrm-sg"
+  description = "Security group for ECS OSRM container"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_with_source_security_group_id = [
+    {
+      from_port                = 5000
+      to_port                  = 5000
+      protocol                 = "tcp"
+      description              = "Request from app container"
+      source_security_group_id = module.ecs_app_sg.security_group_id
+    }
+  ]
+
+  egress_with_cidr_blocks = [
+    {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+      description = "Allow all outbound traffic through HTTPS"
+    },
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+      description = "Allow all outbound traffic through HTTP"
+    }
+  ]
+}

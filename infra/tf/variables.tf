@@ -18,3 +18,13 @@ variable "app-name" {
   type        = string
   default     = "trash-tracker"
 }
+
+variable "app-container-image" {
+  description = "Docker image for the app container"
+  type        = string
+}
+
+variable "osrm-container-image" {
+  description = "Docker image for the OSRM container"
+  type        = string
+}
