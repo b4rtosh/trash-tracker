@@ -3,8 +3,8 @@
 module "alb" {
   source = "terraform-aws-modules/alb/aws"
 
-  name    = "${var.app-name}-alb"
-  vpc_id  = module.vpc.vpc_id
+  name   = "${var.app-name}-alb"
+  vpc_id = module.vpc.vpc_id
 
   subnets = [module.vpc.public_subnets]
 
@@ -59,11 +59,11 @@ module "alb" {
 
   target_groups = {
     ex-instance = {
-      name_prefix      = "h1"
-      protocol         = "HTTP"
-      port             = 80
-      target_type      = "instance"
-      target_id        = "i-0f6d38a07d50d080f"
+      name_prefix = "h1"
+      protocol    = "HTTP"
+      port        = 80
+      target_type = "instance"
+      target_id   = "i-0f6d38a07d50d080f"
     }
   }
 
