@@ -34,14 +34,30 @@ resource "aws_ecs_task_definition" "osrm" {
     name      = "osrm-container"
     image     = var.app-container-image
     essential = true
+    command   = ["osrm-routed", "--algorithm", "mld", "/data/dolnoslaskie-latest.osrm"]
     portMappings = [{
       containerPort = 5000
       hostPort      = 5000
+    }]
+
+    mountPoints = [{
+      sourceVolume  = "map-storage"
+      containerPath = "/data"
+      readOnly      = true
     }]
     linuxParameters = {
       initProcessEnabled = true
     }
   }])
+
+  volume {
+    name = "map-storage"
+
+    efs_volume_configuration {
+      file_system_id     = aws_efs_file_system.osrm_data.id
+      transit_encryption = "ENABLED"
+    }
+  }
 }
 
 resource "aws_ecs_service" "app" {

@@ -82,20 +82,56 @@ module "ecs_osrm_sg" {
     }
   ]
 
-  egress_with_cidr_blocks = [
+  egress_with_source_security_group_id = [
     {
-      from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
-      cidr_blocks = "0.0.0.0/0"
-      description = "Allow all outbound traffic through HTTPS"
+      from_port                = 2049
+      to_port                  = 2049
+      protocol                 = "tcp"
+      description              = "NFS access to EFS"
+      source_security_group_id = module.efs_sg.security_group_id
+    }
+  ]
+}
+
+module "efs_sg" {
+  source = "terraform-aws-modules/security-group/aws"
+
+  name        = "${var.app-name}-efs-sg"
+  description = "Security group for EFS volume containing map data"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_with_source_security_group_id = [
+    {
+      from_port                = 2049
+      to_port                  = 2049
+      protocol                 = "tcp"
+      description              = "NFS from OSRM containers"
+      source_security_group_id = module.ecs_osrm_sg.security_group_id
     },
     {
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
+      from_port                = 2049
+      to_port                  = 2049
+      protocol                 = "tcp"
+      description              = "NFS from EC2 for data preparation"
+      source_security_group_id = module.ec2_sg.security_group_id
+    }
+  ]
+}
+
+module "ec2_sg" {
+  source = "terraform-aws-modules/security-group/aws"
+
+  name        = "${var.app-name}-ec2-sg"
+  description = "Security group for EC2 to prepare osrm map and volume"
+  vpc_id      = module.vpc.vpc_id
+
+  egress_with_cidr_blocks = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
       cidr_blocks = "0.0.0.0/0"
-      description = "Allow all outbound traffic through HTTP"
+      description = "Allow all outbound traffic"
     }
   ]
 }
