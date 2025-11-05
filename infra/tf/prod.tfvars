@@ -1,0 +1,5 @@
+tf-state-bucket      = ""
+tf-state-key         = ""
+region               = "eu-central-1"
+app-container-image  = "docker-blabla"
+osrm-container-image = "osrm/osrm-backend:latest"

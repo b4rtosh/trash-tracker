@@ -67,3 +67,5 @@ src/.env
 node_modules/
 
 migrations/
+
+.terraform*
