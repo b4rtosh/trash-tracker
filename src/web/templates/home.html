@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="home-container">
+    <div class="home-box">
+        <h1 class="home-title">Welcome to TrashTracker</h1>
+        <p class="home-subtitle">
+            Track. Optimize. Protect our planet 🌍
+        </p>
+        <p class="home-description">
+            Manage and visualize your routes efficiently — all while keeping sustainability in focus.
+        </p>
+        <a href="{% url 'login' %}" class="btn home-login-btn">Log In</a>
+    </div>
+</div>
+{% endblock %}
