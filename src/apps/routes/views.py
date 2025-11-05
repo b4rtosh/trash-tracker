@@ -15,7 +15,7 @@ import requests
 
 def index(request):
     """Home page view with all routes"""
-    routes = Route.objects.all().order_by('-created_at')
+    routes = Route.objects.filter(user=request.user).order_by('-created_at') #routes = Route.objects.all().order_by('-created_at')
     return render(request, 'routes/index.html', {
         'routes': routes,
         'view_name': 'index'
@@ -74,8 +74,8 @@ def route_detail(request, route_id):
             osrm_data = response.json()
             geometry = osrm_data["routes"][0]["geometry"]
 
-            route.distance = f"{round(osrm_data["routes"][0]["distance"] / 1000, 2)} km"
-            route.duration = f"{round(osrm_data["routes"][0]["duration"] / 60, 2)} min"
+            route.distance = f"{round(osrm_data['routes'][0]['distance'] / 1000, 2)} km"
+            route.duration = f"{round(osrm_data['routes'][0]['duration'] / 60, 2)} min"
 
             decoded_path = polyline.decode(geometry)  # (lat, lon)
             folium.PolyLine(
@@ -125,7 +125,9 @@ def route_create(request):
     if request.method == 'POST':
         form = RouteForm(request.POST)
         if form.is_valid():
-            route = form.save()
+            route = form.save(commit=False)
+            route.user = request.user
+            route.save()
             return redirect('routes:route_update', route_id=route.id)
     else:
         form = RouteForm()
@@ -195,15 +197,20 @@ def route_update(request, route_id):
 
 
 class RouteViewSet(viewsets.ModelViewSet):
-    queryset = Route.objects.all().order_by('-created_at')
     serializer_class = RouteSerializer
+
+    def get_queryset(self):
+        return Route.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 @api_view(['POST'])
 def add_point(request, route_id):
     """Add a point to a route"""
     try:
-        route = get_object_or_404(Route, pk=route_id)
+        route = get_object_or_404(Route, pk=route_id, user=request.user)
         address_data = {
             'street': request.data.get('street', ''),
             'city': request.data.get('city', ''),
