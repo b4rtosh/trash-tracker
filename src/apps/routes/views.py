@@ -11,6 +11,8 @@ from .utils import coordinates as Coordinates, routing
 import folium
 import polyline
 import requests
+from django.contrib.admin.views.decorators import staff_member_required
+from django.http import HttpResponseForbidden
 
 
 def index(request):
@@ -24,7 +26,12 @@ def index(request):
 
 def route_detail(request, route_id):
     """Display details for a specific route"""
-    route = get_object_or_404(Route, pk=route_id)
+    if request.user.is_staff:
+        route = get_object_or_404(Route, pk=route_id)
+    else:
+        route = get_object_or_404(Route, pk=route_id, user=request.user)
+    if not request.user.is_staff and route.user != request.user:
+        return HttpResponseForbidden("You do not have permission to view this route.")
     points = RoutePoint.objects.filter(route=route).order_by("sequence_number")
 
     needs_optimization = points.filter(sequence_number__isnull=True).exists()
@@ -312,3 +319,10 @@ def set_start_point(reqeust, route_id, point_id):
         'success': True,
         'message': 'New starting point set successfully'
     }, status=status.HTTP_200_OK)
+
+
+
+@staff_member_required
+def admin_routes(request):
+    routes = Route.objects.select_related('user').order_by('-created_at')
+    return render(request, 'routes/admin_routes.html', {'routes': routes})

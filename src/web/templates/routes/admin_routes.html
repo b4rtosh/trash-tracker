@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-header">
+    <h2>All Routes (Admin View)</h2>
+    <a href="{% url 'routes:index' %}" class="btn">Back to My Routes</a>
+</div>
+
+<table class="routes-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>User</th>
+            <th>Distance (km)</th>
+            <th>Duration (min)</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for route in routes %}
+        <tr>
+            <td>
+                <a href="{% url 'routes:route_detail' route.id %}" style="color: lightgreen; text-decoration: none;">
+                    {{ route.name }}
+                </a>
+            </td>
+            <td>{{ route.user.username }}</td>
+            <td>{{ route.distance|default:"-" }}</td>
+            <td>
+                {% if route.duration %}
+                    {{ route.duration|divisibleby:60 }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ route.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No routes found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
