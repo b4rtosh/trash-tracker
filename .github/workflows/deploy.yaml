@@ -58,11 +58,11 @@ jobs:
         TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
       run: |
         if [ -z "$TF_VAR_domain_name" ]; then
-          echo "❌ ERROR: DOMAIN_NAME secret is not set"
+          echo "ERROR: DOMAIN_NAME secret is not set"
           echo "Please add DOMAIN_NAME to GitHub repository secrets"
           exit 1
         fi
-        echo "✅ Domain configured: $TF_VAR_domain_name"
+        echo "Domain configured: $TF_VAR_domain_name"
         terraform validate
 
     - name: Terraform Plan
@@ -79,7 +79,8 @@ jobs:
       with:
         issue-title: "Deploying the infrastructure"
         issue-body: "Please approve or deny the deployment"
-        
+        secret: ${{ github.TOKEN }}
+        approvers: b4rtosh
 
     - name: Terraform Apply
       working-directory: ./infra
