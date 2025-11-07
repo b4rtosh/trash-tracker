@@ -3,10 +3,13 @@ from ..models import Route, RoutePoint
 import requests
 import logging
 from . import held_karp
+import os
+
+OSRM_BASE_URL = os.environ.get('OSRM_BASE_URL', 'http://localhost:5000')
 
 
 def request_distance(latitude1, longitude1, latitude2, longitude2):
-    url = f"http://127.0.0.1:5000/route/v1/driving/{longitude1},{latitude1};{longitude2},{latitude2}?steps=false"
+    url = f"{OSRM_BASE_URL}/route/v1/driving/{longitude1},{latitude1};{longitude2},{latitude2}?steps=false"
     try:
         response = requests.get(url)
 

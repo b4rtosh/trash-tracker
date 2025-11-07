@@ -1,4 +1,5 @@
 from contextlib import nullcontext
+import os
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
@@ -13,6 +14,8 @@ import polyline
 import requests
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden
+
+OSRM_BASE_URL = os.environ.get('OSRM_BASE_URL', 'http://localhost:5000')
 
 
 def index(request):
@@ -74,7 +77,7 @@ def route_detail(request, route_id):
 
     if len(coords) >= 2 and not needs_optimization:
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in coords)
-        osrm_url = f"http://localhost:5000/route/v1/driving/{coords_str}?overview=full"
+        osrm_url = f"{OSRM_BASE_URL}/route/v1/driving/{coords_str}?overview=full"
         print(osrm_url)
         response = requests.get(osrm_url)
         if response.status_code == 200:
