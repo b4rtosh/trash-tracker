@@ -2,7 +2,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.5.0"
 
-  name = "${var.app-name}-vpc"
+  name = "${var.app_name}-vpc"
   cidr = "10.0.0.0/16"
 
   azs             = ["eu-west-1a", "eu-west-1b"]

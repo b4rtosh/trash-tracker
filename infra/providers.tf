@@ -5,11 +5,7 @@ terraform {
       version = "~> 6.0"
     }
   }
-  # backend "s3" {
-  #   bucket = var.tf-state-bucket
-  #   key    = var.tf-state-key
-  #   region = var.region
-  # }
+  backend "s3" {}
 
   required_version = ">= 1.2"
 }
