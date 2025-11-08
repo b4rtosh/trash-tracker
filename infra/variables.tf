@@ -1,6 +1,7 @@
 variable "aws_region" {
   description = "Deployment region"
   type        = string
+  default     = "eu-central-1"
 }
 
 variable "app_name" {

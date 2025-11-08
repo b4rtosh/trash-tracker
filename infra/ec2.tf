@@ -30,17 +30,17 @@ resource "aws_instance" "osrm_setup" {
   count = var.run_osrm_setup ? 1 : 0
 
   ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t2.medium"
+  instance_type = "t3.small"
   subnet_id     = module.vpc.private_subnets[0]
 
   vpc_security_group_ids = [module.ec2_sg.security_group_id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_osrm_setup.name
 
-  user_data = base64encode(templatefile("${path.module}/scripts/osrm_setup.sh", {
+  user_data = templatefile("${path.module}/scripts/osrm_setup.sh", {
     efs_id       = aws_efs_file_system.osrm_data.id
     region       = var.aws_region
     map_data_url = var.osrm_map_data_url
-  }))
+  })
 
   tags = {
     Name    = "${var.app_name}-osrm-setup"

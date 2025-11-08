@@ -5,7 +5,7 @@ module "cluster" {
   database_name = replace(var.app_name, "-", "_")  # Aurora doesn't allow hyphens in DB names
 
   engine         = "aurora-postgresql"
-  engine_version = "14.5"
+  engine_version = "15.5"
   instance_class = "db.t3.small"  # Changed from db.t2.small (better performance)
   instances = {
     one = {}
@@ -38,7 +38,8 @@ module "cluster" {
   monitoring_interval = 10
 
   enabled_cloudwatch_logs_exports = ["postgresql"]
-
+  
+  deletion_protection = false
   # Backup configuration
   backup_retention_period      = 7
   preferred_backup_window      = "03:00-04:00"

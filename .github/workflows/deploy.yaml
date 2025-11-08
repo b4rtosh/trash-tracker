@@ -18,7 +18,7 @@ on:
         default: true
 
 env:
-  AWS_REGION: eu-north-1
+  AWS_REGION: eu-central-1
   ECR_REPOSITORY: trash-tracker/app
 
 jobs:
