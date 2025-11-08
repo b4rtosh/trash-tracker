@@ -35,11 +35,6 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.this.name
 }
 
-output "migration_task_family" {
-  description = "Migration task definition family name"
-  value       = aws_ecs_task_definition.migrate.family
-}
-
 output "private_subnets" {
   description = "Private subnet IDs"
   value       = module.vpc.private_subnets
