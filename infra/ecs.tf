@@ -15,6 +15,12 @@ resource "aws_ecs_task_definition" "app" {
     image     = var.app_container_image
     essential = true
     
+    # Conditionally override the command to run migrations first
+    command = var.run_migrations ? [
+      "sh", "-c", 
+      "python manage.py makemigrations routes && python manage.py migrate && gunicorn trash_tracker.wsgi:application --bind 0.0.0.0:80"
+    ] : null
+    
     portMappings = [{
       containerPort = 80
       hostPort      = 80
@@ -65,70 +71,10 @@ resource "aws_ecs_task_definition" "app" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-group"         = aws_cloudwatch_log_group.app.name
+        "awslogs-group"         = var.run_migrations ? aws_cloudwatch_log_group.migrations.name : aws_cloudwatch_log_group.app.name
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "app"
       }
-    }
-  }])
-}
-
-# Migration Task Definition - Only needs writer endpoint
-resource "aws_ecs_task_definition" "migrate" {
-  family                   = "app-migrate-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  
-  container_definitions = jsonencode([{
-    name      = "migrate-container"
-    image     = var.app_container_image
-    essential = true
-    command   = ["sh", "-c", "python manage.py makemigrations routes && python manage.py migrate"]
-    
-    environment = [
-      {
-        name  = "DATABASE_HOST"
-        value = module.cluster.cluster_endpoint
-      },
-      {
-        name  = "DATABASE_WRITER_HOST"
-        value = module.cluster.cluster_endpoint
-      },
-      {
-        name  = "DATABASE_NAME"
-        value = var.app_name
-      },
-      {
-        name  = "DATABASE_USER"
-        value = var.db_master_username
-      },
-      {
-        name  = "DATABASE_PORT"
-        value = "5432"
-      }
-    ]
-    
-    secrets = [
-      {
-        name      = "DATABASE_PASSWORD"
-        valueFrom = aws_secretsmanager_secret.db_password.arn
-      }
-    ]
-    
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = aws_cloudwatch_log_group.migrations.name
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "migrate"
-      }
-    }
-    
-    linuxParameters = {
-      initProcessEnabled = true
     }
   }])
 }
@@ -187,7 +133,7 @@ resource "aws_ecs_service" "app" {
   name            = "${var.app_name}-app-service"
   cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = var.app_tasks_count
+  desired_count   = var.run_migrations ? 1 : var.app_tasks_count
   launch_type     = "FARGATE"
   
   network_configuration {

@@ -66,3 +66,9 @@ variable "domain_name" {
   type        = string
   default     = "trash-tracker.example.com"  # Change to your domain
 }
+
+variable "run_migrations" {
+  description = "Whether to run migrations on app startup"
+  type        = bool
+  default     = false
+}

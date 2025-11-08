@@ -30,7 +30,7 @@ resource "aws_instance" "osrm_setup" {
   count = var.run_osrm_setup ? 1 : 0
 
   ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "t3.medium"
+  instance_type = "t2.medium"
   subnet_id     = module.vpc.private_subnets[0]
 
   vpc_security_group_ids = [module.ec2_sg.security_group_id]
