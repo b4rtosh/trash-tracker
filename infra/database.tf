@@ -5,8 +5,8 @@ module "cluster" {
   database_name = replace(var.app_name, "-", "_")  # Aurora doesn't allow hyphens in DB names
 
   engine         = "aurora-postgresql"
-  engine_version = "15.5"
-  instance_class = "db.t3.small"  # Changed from db.t2.small (better performance)
+  engine_version = "17.5"
+  instance_class = "db.t3.small"  
   instances = {
     one = {}
     two = {}
