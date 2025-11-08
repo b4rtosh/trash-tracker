@@ -6,7 +6,7 @@ module "cluster" {
 
   engine         = "aurora-postgresql"
   engine_version = "17.5"
-  instance_class = "db.t3.small"  
+  instance_class = "db.t4g.medium"  
   instances = {
     one = {}
     two = {}
