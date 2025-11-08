@@ -23,7 +23,7 @@ env:
 
 jobs:
   build:
-    if: github.event.inputs.build_container != 'false'  # Changed: run on push or when explicitly true
+    if: github.event.inputs.build_container != 'false'
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.build.outputs.image-tag }}
@@ -59,7 +59,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: production
-    if: github.event.inputs.run_migrations == 'true'
+    # Run when migrations are requested, regardless of build job status
+    if: always() && github.event.inputs.run_migrations == 'true' && (needs.build.result == 'success' || needs.build.result == 'skipped')
     
     steps:
     - name: Checkout code
@@ -112,7 +113,6 @@ jobs:
 
   deploy:
     needs: [build, migrate]
-    # Run if migrations were skipped OR if migrations completed
     if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     runs-on: ubuntu-latest
     
