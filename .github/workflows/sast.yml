@@ -47,12 +47,14 @@ jobs:
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2
 
-    - name: Run CodeQL Analysis
+    - name: Run CodeQL Analysis (local SARIF only)
       uses: github/codeql-action/analyze@v2
       with:
         output: codeql-report.sarif
+        # disable upload to Security tab
+        category: "manual"
 
-    # ---- Convert SARIF to JSON-like for analysis ----
+    # ---- Convert SARIF to JSON for local analysis ----
     - name: Convert CodeQL SARIF to JSON
       run: |
         pip install sarif-om
