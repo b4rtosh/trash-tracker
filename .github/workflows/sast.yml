@@ -28,14 +28,14 @@ jobs:
     - name: Semgrep Scan
       run: |
         pip install semgrep
-        semgrep --config p/owasp-top-ten --json --output semgrep-report.json
+        semgrep --config p/owasp-top-ten --json --output semgrep-report.json --include . || true
       continue-on-error: true
 
     # ---- BANDIT ----
     - name: Bandit Scan
       run: |
         pip install bandit
-        bandit -r . -f json -o bandit-report.json
+        bandit -r . -f json -o bandit-report.json || true
       continue-on-error: true
 
     # ---- SAFETY ----
@@ -98,7 +98,7 @@ jobs:
       uses: peter-evans/create-issue-from-file@v6
       with:
         title: "Critical SAST Issues Detected"
-        content: |
+        content-filepath: |
           Critical security issues were detected by SAST scans.
 
           Please review the attached reports:
