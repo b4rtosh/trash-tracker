@@ -41,12 +41,22 @@ jobs:
     # ---- JOERN ----
     - name: Joern Scan
       run: |
+        # Instalacja
         sudo apt-get update
-        sudo apt-get install -y openjdk-21-jdk wget
+        sudo apt-get install -y openjdk-21-jdk wget unzip
         wget https://github.com/joernio/joern/releases/latest/download/joern-install.sh
         chmod +x joern-install.sh
         sudo ./joern-install.sh
 
+        # Skanowanie kodu i eksport JSON
+        # przechodzimy do katalogu repozytorium (GITHUB_WORKSPACE)
+        cd $GITHUB_WORKSPACE
+
+        # tworzymy CPG z kodu źródłowego
+        joern-parse . || true
+
+        # eksport raportu do JSON
+        joern-export-json > joern-report.json || true
       continue-on-error: true
 
     # ---- Upload artifacts ----
