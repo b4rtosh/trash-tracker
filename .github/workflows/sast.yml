@@ -52,10 +52,6 @@ jobs:
         codeql database analyze codeql-database \
           --format=sarif-latest \
           --output=codeql-report.sarif
-      with:
-        output: codeql-report.sarif
-        # disable upload to Security tab
-        category: "manual"
 
     # ---- Convert SARIF to JSON for local analysis ----
     - name: Convert CodeQL SARIF to JSON
