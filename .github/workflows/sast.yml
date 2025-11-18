@@ -48,7 +48,10 @@ jobs:
       uses: github/codeql-action/autobuild@v2
 
     - name: Run CodeQL Analysis (local SARIF only)
-      uses: github/codeql-action/analyze@v2
+      run: |
+        codeql database analyze codeql-database \
+          --format=sarif-latest \
+          --output=codeql-report.sarif
       with:
         output: codeql-report.sarif
         # disable upload to Security tab
