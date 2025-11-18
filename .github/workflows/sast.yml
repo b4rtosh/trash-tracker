@@ -1,0 +1,110 @@
+name: SAST Scan PR
+
+on:
+  pull_request:
+    branches: [ "sast-scan-feature" ]
+  push:
+    branches: [ "sast-scan-feature" ]
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt || true
+
+    # ---- SEMGREP ----
+    - name: Semgrep Scan
+      run: |
+        pip install semgrep
+        semgrep --config p/owasp-top-ten --json > semgrep-report.json
+      continue-on-error: true
+
+    # ---- BANDIT ----
+    - name: Bandit Scan
+      run: |
+        pip install bandit
+        bandit -r . -f json -o bandit-report.json
+      continue-on-error: true
+
+    # ---- SAFETY ----
+    - name: Safety Scan
+      run: |
+        pip install safety
+        safety check --json > safety-report.json
+      continue-on-error: true
+
+    # ---- Upload artifacts ----
+    - name: Upload SAST Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: sast-reports
+        path: |
+          semgrep-report.json
+          bandit-report.json
+          safety-report.json
+
+    # ---- ANALYZE REPORTS FOR CRITICAL ISSUES ----
+    - name: Check for Critical Issues
+      id: check_reports
+      run: |
+        python3 <<EOF
+        import json, sys
+
+        critical = False
+
+        # --- SEMGREP ---
+        with open("semgrep-report.json") as f:
+            sem = json.load(f)
+            for result in sem.get("results", []):
+                if result["extra"].get("severity") == "ERROR":
+                    critical = True
+
+        # --- BANDIT ---
+        with open("bandit-report.json") as f:
+            bandit = json.load(f)
+            for r in bandit.get("results", []):
+                if r.get("issue_severity") == "HIGH":
+                    critical = True
+
+        # --- SAFETY ---
+        with open("safety-report.json") as f:
+            safety = json.load(f)
+            for vuln in safety.get("vulnerabilities", []):
+                if vuln.get("severity") == "critical":
+                    critical = True
+
+        if critical:
+            print("CRITICAL ISSUES DETECTED")
+            sys.exit(1)
+        else:
+            print("No critical issues detected.")
+        EOF
+
+    # ---- CREATE GITHUB ISSUE WHEN CRITICAL FOUND ----
+    - name: Create GitHub Issue
+      if: failure()    # run only when step above failed
+      uses: peter-evans/create-issue-from-file@v6
+      with:
+        title: "Critical SAST Issues Detected"
+        content: |
+          Critical security issues were detected by SAST scans.
+
+          Please review the attached reports:
+          - semgrep-report.json
+          - bandit-report.json
+          - safety-report.json
+
+          Generated automatically by GitHub Actions.
+        labels: security, urgent
