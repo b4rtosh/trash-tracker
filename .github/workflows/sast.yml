@@ -38,48 +38,50 @@ jobs:
         bandit -r . -f json -o bandit-report.json || true
       continue-on-error: true
 
-    # ---- CODEQL ----
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: python
+    # ---- PySA ----
+    - name: PySA Scan
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
 
-    - name: Run CodeQL Analysis (local SARIF only)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       run: |
-        codeql database analyze codeql-database \
-          --format=sarif-latest \
-          --output=codeql-report.sarif
+        pip install facebook-pysa
+        mkdir -p pysa-report
+        # Analyze the project and generate JSON report
+        pysa analyze --project . --json-output pysa-report/pysa-report.json || true
+      continue-on-error: true
 
-    # ---- Convert SARIF to JSON for local analysis ----
-    - name: Convert CodeQL SARIF to JSON
-      run: |
-        pip install sarif-om
-        python3 - <<EOF
-        import json
-        import sarif_om
 
-        sarif_file = "codeql-report.sarif"
-        json_out = "codeql-report.json"
 
-        try:
-            with open(sarif_file, "r") as f:
-                sarif = sarif_om.SarifLog.from_dict(json.load(f))
-            results = []
-            for r in sarif.runs[0].results or []:
-                results.append({
-                    "ruleId": r.ruleId,
-                    "severity": getattr(r.level, "name", str(r.level)).upper(),
-                    "message": r.message.text
-                })
-            with open(json_out, "w") as f:
-                json.dump({"results": results}, f)
-        except Exception:
-            with open(json_out, "w") as f:
-                json.dump({"results": []}, f)
-        EOF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # ---- Upload artifacts ----
     - name: Upload SAST Reports
@@ -89,7 +91,7 @@ jobs:
         path: |
           semgrep-report.json
           bandit-report.json
-          codeql-report.json
+          pysa-report/pysa-report.json
 
     # ---- ANALYZE REPORTS FOR CRITICAL ISSUES ----
     - name: Check for Critical Issues
@@ -97,6 +99,7 @@ jobs:
       run: |
         python3 <<EOF
         import json, sys
+        import glob
 
         critical = False
 
@@ -120,15 +123,17 @@ jobs:
             if r.get("issue_severity") == "HIGH":
                 critical = True
 
-        # --- CODEQL ---
-        try:
-            with open("codeql-report.json") as f:
-                codeql = json.load(f)
-        except:
-            codeql = {"results": []}
-        for r in codeql.get("results", []):
-            if r.get("severity", "").lower() in ["error", "critical", "high"]:
-                critical = True
+        # --- PySA ---
+			
+        for pysa_file in glob.glob("pysa-report/*.json"):
+            try:
+                with open(pysa_file) as f:
+                    pysa = json.load(f)
+            except:
+                pysa = {"results": []}
+            for r in pysa.get("results", []):
+                if r.get("severity", "").lower() in ["high", "critical", "error"]:
+                    critical = True
 
         # --- GENERATE ISSUE FILE ---
         with open("issue.md", "w") as f:
