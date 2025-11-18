@@ -40,48 +40,11 @@ jobs:
 
     # ---- PySA ----
     - name: PySA Scan
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       run: |
         pip install facebook-pysa
         mkdir -p pysa-report
-        # Analyze the project and generate JSON report
-        pysa analyze --project . --json-output pysa-report/pysa-report.json || true
+        pysa analyze --project . --json-output pysa-report.json || true
       continue-on-error: true
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     # ---- Upload artifacts ----
     - name: Upload SAST Reports
