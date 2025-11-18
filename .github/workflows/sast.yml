@@ -42,7 +42,6 @@ jobs:
     - name: PySA Scan
       run: |
         pip install facebook-pysa
-        mkdir -p pysa-report
         pysa analyze --project . --json-output pysa-report.json || true
       continue-on-error: true
 
@@ -54,15 +53,15 @@ jobs:
         path: |
           semgrep-report.json
           bandit-report.json
-          pysa-report/pysa-report.json
+          pysa-report.json
 
     # ---- ANALYZE REPORTS FOR CRITICAL ISSUES ----
     - name: Check for Critical Issues
       id: check_reports
       run: |
-        python3 <<EOF
+					 
         import json, sys
-        import glob
+				   
 
         critical = False
 
@@ -85,34 +84,23 @@ jobs:
         for r in bandit.get("results", []):
             if r.get("issue_severity") == "HIGH":
                 critical = True
-
-        # --- PySA ---
-			
-        for pysa_file in glob.glob("pysa-report/*.json"):
-            try:
-                with open(pysa_file) as f:
-                    pysa = json.load(f)
-            except:
-                pysa = {"results": []}
-            for r in pysa.get("results", []):
-                if r.get("severity", "").lower() in ["high", "critical", "error"]:
-                    critical = True
-
-        # --- GENERATE ISSUE FILE ---
-        with open("issue.md", "w") as f:
-            if critical:
-                f.write("Critical SAST issues detected. Check reports in artifacts.\n")
-            else:
-                f.write("No critical issues detected.\n")
+        
+        # --- PYSA ---
+        try:
+            with open("pysa-report.json") as f:							  
+                pysa = json.load(f)
+        except:
+            pysa = {"results": []}
+        for r in pysa.get("results", []):
+            if r.get("severity", "").lower() in ["high", "critical", "error"]:
+                critical = True
 
         if critical:
             print("CRITICAL ISSUES DETECTED")
             sys.exit(1)
         else:
             print("No critical issues detected.")
-        EOF
-
-    # ---- CREATE GITHUB ISSUE WHEN CRITICAL FOUND ----
+      # ---- CREATE GITHUB ISSUE WHEN CRITICAL FOUND ----
     - name: Create GitHub Issue
       if: failure()
       uses: peter-evans/create-issue-from-file@v6
