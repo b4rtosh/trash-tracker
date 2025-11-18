@@ -38,26 +38,47 @@ jobs:
         bandit -r . -f json -o bandit-report.json || true
       continue-on-error: true
 
-    # ---- JOERN ----
-    - name: Joern Scan
+    # ---- CODEQL ----
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v2
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        output: codeql-report.sarif
+
+    # ---- Convert SARIF to JSON-like for analysis ----
+    - name: Convert CodeQL SARIF to JSON
       run: |
-        # Instalacja
-        sudo apt-get update
-        sudo apt-get install -y openjdk-21-jdk wget unzip
-        wget https://github.com/joernio/joern/releases/latest/download/joern-install.sh
-        chmod +x joern-install.sh
-        sudo ./joern-install.sh
+        pip install sarif-om
+        python3 - <<EOF
+        import json
+        import sarif_om
 
-        # Skanowanie kodu i eksport JSON
-        # przechodzimy do katalogu repozytorium (GITHUB_WORKSPACE)
-        cd $GITHUB_WORKSPACE
+        sarif_file = "codeql-report.sarif"
+        json_out = "codeql-report.json"
 
-        # tworzymy CPG z kodu źródłowego
-        joern-parse . || true
-
-        # eksport raportu do JSON
-        joern-export-json > joern-report.json || true
-      continue-on-error: true
+        try:
+            with open(sarif_file, "r") as f:
+                sarif = sarif_om.SarifLog.from_dict(json.load(f))
+            results = []
+            for r in sarif.runs[0].results or []:
+                results.append({
+                    "ruleId": r.ruleId,
+                    "severity": getattr(r.level, "name", str(r.level)).upper(),
+                    "message": r.message.text
+                })
+            with open(json_out, "w") as f:
+                json.dump({"results": results}, f)
+        except Exception:
+            with open(json_out, "w") as f:
+                json.dump({"results": []}, f)
+        EOF
 
     # ---- Upload artifacts ----
     - name: Upload SAST Reports
@@ -67,7 +88,7 @@ jobs:
         path: |
           semgrep-report.json
           bandit-report.json
-          joern-report.json
+          codeql-report.json
 
     # ---- ANALYZE REPORTS FOR CRITICAL ISSUES ----
     - name: Check for Critical Issues
@@ -98,14 +119,14 @@ jobs:
             if r.get("issue_severity") == "HIGH":
                 critical = True
 
-        # --- JOERN ---
+        # --- CODEQL ---
         try:
-            with open("joern-report.json") as f:
-                joern = json.load(f)
+            with open("codeql-report.json") as f:
+                codeql = json.load(f)
         except:
-            joern = {"results": []}
-        for r in joern.get("results", []):
-            if r.get("severity", "").lower() in ["high", "critical", "error"]:
+            codeql = {"results": []}
+        for r in codeql.get("results", []):
+            if r.get("severity", "").lower() in ["error", "critical", "high"]:
                 critical = True
 
         # --- GENERATE ISSUE FILE ---
