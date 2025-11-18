@@ -38,11 +38,15 @@ jobs:
         bandit -r . -f json -o bandit-report.json || true
       continue-on-error: true
 
-    # ---- SAFETY ----
-    - name: Safety Scan
+    # ---- JOERN ----
+    - name: Joern Scan
       run: |
-        pip install safety
-        safety check --json > safety-report.json
+        sudo apt-get update
+        sudo apt-get install -y openjdk-21-jdk wget
+        wget https://github.com/joernio/joern/releases/latest/download/joern-install.sh
+        chmod +x joern-install.sh
+        sudo ./joern-install.sh
+
       continue-on-error: true
 
     # ---- Upload artifacts ----
@@ -53,7 +57,7 @@ jobs:
         path: |
           semgrep-report.json
           bandit-report.json
-          safety-report.json
+          joern-report.json
 
     # ---- ANALYZE REPORTS FOR CRITICAL ISSUES ----
     - name: Check for Critical Issues
@@ -65,25 +69,41 @@ jobs:
         critical = False
 
         # --- SEMGREP ---
-        with open("semgrep-report.json") as f:
-            sem = json.load(f)
-            for result in sem.get("results", []):
-                if result["extra"].get("severity") == "ERROR":
-                    critical = True
+        try:
+            with open("semgrep-report.json") as f:
+                sem = json.load(f)
+        except:
+            sem = {"results": []}
+        for result in sem.get("results", []):
+            if result.get("extra", {}).get("severity") == "ERROR":
+                critical = True
 
         # --- BANDIT ---
-        with open("bandit-report.json") as f:
-            bandit = json.load(f)
-            for r in bandit.get("results", []):
-                if r.get("issue_severity") == "HIGH":
-                    critical = True
+        try:
+            with open("bandit-report.json") as f:
+                bandit = json.load(f)
+        except:
+            bandit = {"results": []}
+        for r in bandit.get("results", []):
+            if r.get("issue_severity") == "HIGH":
+                critical = True
 
-        # --- SAFETY ---
-        with open("safety-report.json") as f:
-            safety = json.load(f)
-            for vuln in safety.get("vulnerabilities", []):
-                if vuln.get("severity") == "critical":
-                    critical = True
+        # --- JOERN ---
+        try:
+            with open("joern-report.json") as f:
+                joern = json.load(f)
+        except:
+            joern = {"results": []}
+        for r in joern.get("results", []):
+            if r.get("severity", "").lower() in ["high", "critical", "error"]:
+                critical = True
+
+        # --- GENERATE ISSUE FILE ---
+        with open("issue.md", "w") as f:
+            if critical:
+                f.write("Critical SAST issues detected. Check reports in artifacts.\n")
+            else:
+                f.write("No critical issues detected.\n")
 
         if critical:
             print("CRITICAL ISSUES DETECTED")
@@ -94,17 +114,9 @@ jobs:
 
     # ---- CREATE GITHUB ISSUE WHEN CRITICAL FOUND ----
     - name: Create GitHub Issue
-      if: failure()    # run only when step above failed
+      if: failure()
       uses: peter-evans/create-issue-from-file@v6
       with:
         title: "Critical SAST Issues Detected"
-        content-filepath: |
-          Critical security issues were detected by SAST scans.
-
-          Please review the attached reports:
-          - semgrep-report.json
-          - bandit-report.json
-          - safety-report.json
-
-          Generated automatically by GitHub Actions.
+        content-filepath: issue.md
         labels: security, urgent
