@@ -28,7 +28,7 @@ jobs:
     - name: Semgrep Scan
       run: |
         pip install semgrep
-        semgrep --config p/owasp-top-ten --json > semgrep-report.json
+        run: semgrep --config p/owasp-top-ten --json --output semgrep-report.json
       continue-on-error: true
 
     # ---- BANDIT ----
