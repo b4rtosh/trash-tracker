@@ -19,7 +19,7 @@ resource "aws_ecs_task_definition" "app" {
     # Conditionally override the command to run migrations first
     command = var.run_migrations ? [
       "sh", "-c", 
-      "python manage.py makemigrations routes --noinput && python manage.py migrate && gunicorn trash_tracker.wsgi:application --bind 0.0.0.0:8080"
+      "python manage.py makemigrations routes --noinput && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8080"
     ] : null
     
     portMappings = [{
