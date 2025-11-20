@@ -40,7 +40,7 @@ module "alb" {
     app = {
       name_prefix      = "app-"
       protocol         = "HTTP"
-      port             = 80
+      port             = 8080
       target_type      = "ip"
       vpc_id           = module.vpc.vpc_id
       create_attachment = false
