@@ -62,7 +62,7 @@ resource "aws_ecs_task_definition" "app" {
       },
       {
         name = "CSRF_TRUSTED_ORIGINS"
-        value = module.alb.dns_name
+        value = "https://${module.alb.dns_name}"
       }
     ]
     
