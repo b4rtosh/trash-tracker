@@ -39,6 +39,7 @@ module "cluster" {
 
   enabled_cloudwatch_logs_exports = ["postgresql"]
   
+  skip_final_snapshot = true
   deletion_protection = false
   # Backup configuration
   backup_retention_period      = 7
