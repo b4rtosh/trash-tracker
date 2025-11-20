@@ -42,7 +42,7 @@ resource "aws_ecs_task_definition" "app" {
       },
       {
         name  = "DATABASE_NAME"
-        value = var.app_name
+        value = replace(var.app_name, "-", "_")
       },
       {
         name  = "DATABASE_USER"
