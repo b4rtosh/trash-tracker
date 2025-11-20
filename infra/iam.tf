@@ -42,7 +42,7 @@ resource "aws_iam_role_policy" "ecs_exec_policy" {
 resource "aws_iam_role_policy" "ecs_secrets_policy" {
   name = "ecsSecretsPolicy"
   role = aws_iam_role.ecs_task_execution_role.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -66,6 +66,43 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
             "kms:ViaService" : "secretsmanager.${var.aws_region}.amazonaws.com"
           }
         }
+      }
+    ]
+  })
+}
+
+# Task role (for the container itself to make AWS API calls)
+resource "aws_iam_role" "ecs_task_role" {
+  name = "ecsTaskRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+    }]
+  })
+}
+
+# Allow ECS Exec for debugging
+resource "aws_iam_role_policy" "ecs_task_exec_policy" {
+  name = "ecsTaskExecPolicy"
+  role = aws_iam_role.ecs_task_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = "*"
       }
     ]
   })
