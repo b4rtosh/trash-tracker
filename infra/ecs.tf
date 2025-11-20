@@ -55,6 +55,10 @@ resource "aws_ecs_task_definition" "app" {
       {
         name  = "OSRM_HOST"
         value = "http://${aws_lb.osrm_internal.dns_name}:5000"
+      },
+      {
+        name  = "ALLOWED_HOSTS"
+        value = "*"
       }
     ]
     
