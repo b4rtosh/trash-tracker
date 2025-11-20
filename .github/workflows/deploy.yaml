@@ -99,14 +99,6 @@ jobs:
         echo "Waiting 60 seconds for migration to complete..."
         sleep 60
 
-    - name: Check migration logs
-      working-directory: ./infra
-      run: |
-        CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
-        
-        echo "Checking migration logs..."
-        aws logs tail /ecs/app --follow --since 2m --format short || true
-
   deploy:
     needs: [build, migrate]
     if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
