@@ -6,22 +6,8 @@ module "alb" {
   vpc_id  = module.vpc.vpc_id
   subnets = module.vpc.public_subnets
 
-  security_group_ingress_rules = {
-    cloudflare_https = {
-      from_port   = 443
-      to_port     = 443
-      ip_protocol = "tcp"
-      description = "HTTPS from Cloudflare"
-      cidr_ipv4   = "0.0.0.0/0"
-    }
-  }
-  
-  security_group_egress_rules = {
-    all = {
-      ip_protocol = "-1"
-      cidr_ipv4   = "10.0.0.0/16"
-    }
-  }
+  security_groups = [module.alb_sg.security_group_id]
+    create_security_group = false
 
   listeners = {
     https = {
@@ -40,7 +26,7 @@ module "alb" {
     app = {
       name_prefix      = "app-"
       protocol         = "HTTP"
-      port             = 80
+      port             = 8080
       target_type      = "ip"
       vpc_id           = module.vpc.vpc_id
       create_attachment = false
@@ -50,7 +36,7 @@ module "alb" {
         healthy_threshold   = 2
         interval            = 30
         matcher             = "200"
-        path                = "/"
+        path                = "/health/"
         port                = "traffic-port"
         protocol            = "HTTP"
         timeout             = 5
