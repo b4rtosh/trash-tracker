@@ -59,6 +59,10 @@ resource "aws_ecs_task_definition" "app" {
       {
         name  = "ALLOWED_HOSTS"
         value = "*"
+      },
+      {
+        name = "CSRF_TRUSTED_ORIGINS"
+        value = "https://${module.alb.dns_name}"
       }
     ]
     

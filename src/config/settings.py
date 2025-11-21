@@ -12,6 +12,12 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# CSRF trusted origins for cross-origin requests
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:8000,http://127.0.0.1:8000'
+).split(',')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -57,20 +63,34 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database - Use RDS PostgreSQL in production
+# Database - Use RDS PostgreSQL in production with read replica support
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
         'USER': os.environ.get('DATABASE_USER', 'postgres'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+        'HOST': os.environ.get('DATABASE_WRITER_HOST', os.environ.get('DATABASE_HOST', 'localhost')),
+        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    },
+    'replica': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
+        'USER': os.environ.get('DATABASE_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
+        'HOST': os.environ.get('DATABASE_READER_HOST', os.environ.get('DATABASE_HOST', 'localhost')),
         'PORT': os.environ.get('DATABASE_PORT', '5432'),
         'OPTIONS': {
             'connect_timeout': 10,
         },
     }
 }
+
+# Database routers
+DATABASE_ROUTERS = ['config.db_router.ReplicaRouter']
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
