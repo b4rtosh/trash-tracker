@@ -54,17 +54,6 @@ module "alb_sg" {
   egress_rules = ["all-all"]
 }
 
-module "ec2_sg" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "~> 5.0"
-
-  name        = "${var.app_name}-ec2-sg"
-  description = "Security group for EC2 OSRM setup instance"
-  vpc_id      = module.vpc.vpc_id
-
-  egress_rules = ["all-all"]
-}
-
 module "efs_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 5.0"
@@ -80,13 +69,6 @@ module "efs_sg" {
       protocol                 = "tcp"
       description              = "NFS from ECS OSRM"
       source_security_group_id = module.ecs_osrm_sg.security_group_id
-    },
-    {
-      from_port                = 2049
-      to_port                  = 2049
-      protocol                 = "tcp"
-      description              = "NFS from EC2"
-      source_security_group_id = module.ec2_sg.security_group_id
     }
   ]
 

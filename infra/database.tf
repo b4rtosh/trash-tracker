@@ -9,7 +9,7 @@ module "cluster" {
   instance_class = "db.t4g.medium"  
   instances = {
     one = {}
-    two = {}
+    # two = {}
   }
 
   autoscaling_enabled      = true
