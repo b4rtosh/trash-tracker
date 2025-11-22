@@ -1,6 +1,6 @@
 module "cluster" {
   source = "terraform-aws-modules/rds-aurora/aws"
-
+  version = "9.16.1"
   name          = "${var.app_name}-aurora-cluster"
   database_name = replace(var.app_name, "-", "_")  # Aurora doesn't allow hyphens in DB names
 
@@ -39,6 +39,7 @@ module "cluster" {
 
   enabled_cloudwatch_logs_exports = ["postgresql"]
   
+  skip_final_snapshot = true
   deletion_protection = false
   # Backup configuration
   backup_retention_period      = 7

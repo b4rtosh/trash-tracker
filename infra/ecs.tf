@@ -9,6 +9,7 @@ resource "aws_ecs_task_definition" "app" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   
   container_definitions = jsonencode([{
     name      = "app-container"
@@ -18,12 +19,12 @@ resource "aws_ecs_task_definition" "app" {
     # Conditionally override the command to run migrations first
     command = var.run_migrations ? [
       "sh", "-c", 
-      "python manage.py makemigrations routes && python manage.py migrate && gunicorn trash_tracker.wsgi:application --bind 0.0.0.0:80"
+      "python manage.py makemigrations routes --noinput && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8080"
     ] : null
     
     portMappings = [{
-      containerPort = 80
-      hostPort      = 80
+      containerPort = 8080
+      hostPort      = 8080
     }]
     
     environment = [
@@ -41,7 +42,7 @@ resource "aws_ecs_task_definition" "app" {
       },
       {
         name  = "DATABASE_NAME"
-        value = var.app_name
+        value = replace(var.app_name, "-", "_")
       },
       {
         name  = "DATABASE_USER"
@@ -54,6 +55,14 @@ resource "aws_ecs_task_definition" "app" {
       {
         name  = "OSRM_HOST"
         value = "http://${aws_lb.osrm_internal.dns_name}:5000"
+      },
+      {
+        name  = "ALLOWED_HOSTS"
+        value = "*"
+      },
+      {
+        name = "CSRF_TRUSTED_ORIGINS"
+        value = "https://${module.alb.dns_name}"
       }
     ]
     
@@ -86,6 +95,7 @@ resource "aws_ecs_task_definition" "osrm" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   
   container_definitions = jsonencode([{
     name      = "osrm-container"
@@ -145,7 +155,7 @@ resource "aws_ecs_service" "app" {
   load_balancer {
     target_group_arn = module.alb.target_groups["app"].arn
     container_name   = "app-container"
-    container_port   = 80
+    container_port   = 8080
   }
   
   enable_execute_command = true

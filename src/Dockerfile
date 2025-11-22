@@ -34,11 +34,11 @@ RUN useradd -m -u 1000 appuser && \
 USER appuser
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:80/health/', timeout=5)" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8080/health/', timeout=5)" || exit 1
 
 # Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:80", "--workers", "3", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "config.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "3", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "config.wsgi:application"]
