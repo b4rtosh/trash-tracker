@@ -63,6 +63,10 @@ resource "aws_ecs_task_definition" "app" {
       {
         name = "CSRF_TRUSTED_ORIGINS"
         value = "https://${module.alb.dns_name}"
+      },
+      {
+        name = "DATABASE_ENGINE",
+        value = "django.db.backends.postgresql"
       }
     ]
     

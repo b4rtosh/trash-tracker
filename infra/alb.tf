@@ -5,6 +5,8 @@ module "alb" {
   name    = "${var.app_name}-alb-app"
   vpc_id  = module.vpc.vpc_id
   subnets = module.vpc.public_subnets
+  
+  enable_deletion_protection = true
 
   security_groups = [module.alb_sg.security_group_id]
     create_security_group = false
@@ -34,13 +36,13 @@ module "alb" {
       health_check = {
         enabled             = true
         healthy_threshold   = 2
-        interval            = 30
+        interval            = 60
         matcher             = "200"
         path                = "/health/"
         port                = "traffic-port"
         protocol            = "HTTP"
-        timeout             = 5
-        unhealthy_threshold = 2
+        timeout             = 10
+        unhealthy_threshold = 5
       }
       
       deregistration_delay = 30
@@ -96,12 +98,12 @@ resource "aws_acm_certificate" "self_signed" {
   }
 }
 
-# Internal Load Balancer for OSRM (this part is OK)
+# Internal Load Balancer for OSRM
 resource "aws_lb" "osrm_internal" {
   name               = "${var.app_name}-osrm-internal"
   internal           = true
   load_balancer_type = "application"
-  security_groups    = [module.ecs_osrm_sg.security_group_id]
+  security_groups    = [module.osrm_internal_alb_sg.security_group_id]
   subnets            = module.vpc.private_subnets
 
   tags = {
@@ -119,13 +121,13 @@ resource "aws_lb_target_group" "osrm" {
   health_check {
     enabled             = true
     healthy_threshold   = 2
-    interval            = 30
+    interval            = 60
     matcher             = "200"
-    path                = "/health"
+    path                = "/route/v1/driving/polyline%28ofp_Ik_vpAilAyu@te@g%60E%29?overview=false"
     port                = "traffic-port"
     protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
+    timeout             = 10
+    unhealthy_threshold = 5
   }
 
   tags = {
