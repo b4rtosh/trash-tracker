@@ -42,7 +42,7 @@ jobs:
     - name: Safety Scan
       run: |
         pip install safety
-        safety check --json > safety-report.json || true
+        safety scan --json > safety-report.json || true
       continue-on-error: true
 
     # ---- Upload artifacts ----
