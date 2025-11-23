@@ -45,7 +45,17 @@ jobs:
         safety check --json > safety-report.json || true
       continue-on-error: true
 
-    # ---- Upload artifacts ----
+    - name: Pretty-print Semgrep JSON
+      run: |
+        python3 - <<EOF
+        import json
+        with open("semgrep-report.json") as f:
+            data = json.load(f)
+        with open("semgrep-report.json", "w") as f:
+            json.dump(data, f, indent=2)
+        EOF
+
+      # ---- Upload artifacts ----
     - name: Upload SAST Reports
       uses: actions/upload-artifact@v4
       with:
