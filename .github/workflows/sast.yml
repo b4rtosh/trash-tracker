@@ -28,7 +28,7 @@ jobs:
     - name: Semgrep Scan
       run: |
         pip install semgrep
-        semgrep --config p/owasp-top-ten --json --output semgrep-report.json --all-files || true
+        semgrep --config p/owasp-top-ten -a --json --output semgrep-report.json . || true
       continue-on-error: true
 
     # ---- BANDIT ----
@@ -42,7 +42,7 @@ jobs:
     - name: Safety Scan
       run: |
         pip install safety
-        safety scan --json > safety-report.json || true
+        safety check --json > safety-report.json || true
       continue-on-error: true
 
     # ---- Upload artifacts ----
