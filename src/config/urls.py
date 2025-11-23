@@ -25,7 +25,7 @@ urlpatterns = [
     path('health/', health_check, name='health_check'),
     path('accounts/', include('apps.accounts.urls')),
     path('routes/', include('apps.routes.urls')),
-    path('api/routes/', include('apps.routes.urls_api')),
+    path('api/', include('apps.routes.urls_api')),
     path('', include('apps.routes.urls')),
 ]
 
