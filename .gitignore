@@ -70,3 +70,5 @@ migrations/*
 
 .terraform*
 *local.hcl
+
+migrations
