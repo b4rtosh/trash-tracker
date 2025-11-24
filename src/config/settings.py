@@ -66,23 +66,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database - Use RDS PostgreSQL in production with read replica support
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
         'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
-        'USER': os.environ.get('DATABASE_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
+        'USER': os.environ.get('DATABASE_USER', 'admin'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'adminpass'),
         'HOST': os.environ.get('DATABASE_WRITER_HOST', os.environ.get('DATABASE_HOST', 'localhost')),
-        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
         'OPTIONS': {
             'connect_timeout': 10,
         },
     },
     'replica': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
         'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
-        'USER': os.environ.get('DATABASE_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
+        'USER': os.environ.get('DATABASE_USER', 'admin'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'adminpass'),
         'HOST': os.environ.get('DATABASE_READER_HOST', os.environ.get('DATABASE_HOST', 'localhost')),
-        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
         'OPTIONS': {
             'connect_timeout': 10,
         },
