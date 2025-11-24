@@ -66,7 +66,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database - Use RDS PostgreSQL in production with read replica support
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('DATABASE_ENGINE','django.db.backends.mysql'),
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
         'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
         'USER': os.environ.get('DATABASE_USER', 'admin'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'adminpass'),
@@ -77,7 +77,7 @@ DATABASES = {
         },
     },
     'replica': {
-        'ENGINE': os.environ.get('DATABASE_ENGINE','django.db.backends.mysql'),
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
         'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
         'USER': os.environ.get('DATABASE_USER', 'admin'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'adminpass'),

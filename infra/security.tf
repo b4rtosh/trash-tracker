@@ -34,6 +34,13 @@ module "ecs_osrm_sg" {
       protocol                 = "tcp"
       description              = "OSRM from app"
       source_security_group_id = module.ecs_app_sg.security_group_id
+    },
+    {
+      from_port                = 5000
+      to_port                  = 5000
+      protocol                 = "tcp"
+      description              = "OSRM from lb"
+      source_security_group_id = module.osrm_internal_alb_sg.security_group_id
     }
   ]
 
@@ -54,17 +61,6 @@ module "alb_sg" {
   egress_rules = ["all-all"]
 }
 
-module "ec2_sg" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "~> 5.0"
-
-  name        = "${var.app_name}-ec2-sg"
-  description = "Security group for EC2 OSRM setup instance"
-  vpc_id      = module.vpc.vpc_id
-
-  egress_rules = ["all-all"]
-}
-
 module "efs_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 5.0"
@@ -80,13 +76,27 @@ module "efs_sg" {
       protocol                 = "tcp"
       description              = "NFS from ECS OSRM"
       source_security_group_id = module.ecs_osrm_sg.security_group_id
-    },
+    }
+  ]
+
+  egress_rules = ["all-all"]
+}
+
+module "osrm_internal_alb_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~> 5.0"
+
+  name        = "${var.app_name}-osrm-internal-alb-sg"
+  description = "Security group for internal OSRM load balancer"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_with_source_security_group_id = [
     {
-      from_port                = 2049
-      to_port                  = 2049
+      from_port                = 5000
+      to_port                  = 5000
       protocol                 = "tcp"
-      description              = "NFS from EC2"
-      source_security_group_id = module.ec2_sg.security_group_id
+      description              = "OSRM from app tasks"
+      source_security_group_id = module.ecs_app_sg.security_group_id
     }
   ]
 

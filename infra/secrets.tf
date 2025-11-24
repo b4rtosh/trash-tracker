@@ -1,5 +1,5 @@
 resource "aws_secretsmanager_secret" "db_password" {
-  name                    = "${var.app_name}-db-master-password"
+  name                    = "${var.app_name}-db-master-pass"
   recovery_window_in_days = 7
   
   tags = {
