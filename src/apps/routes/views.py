@@ -14,10 +14,11 @@ import polyline
 import requests
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden
+from django.contrib.auth.decorators import login_required
 
 OSRM_BASE_URL = os.environ.get('OSRM_BASE_URL', 'http://localhost:5000')
 
-
+@login_required(login_url='/')
 def index(request):
     """Home page view with all routes"""
     routes = Route.objects.filter(user=request.user).order_by('-created_at') #routes = Route.objects.all().order_by('-created_at')
@@ -26,15 +27,15 @@ def index(request):
         'view_name': 'index'
     })
 
-
+@login_required(login_url='/')
 def route_detail(request, route_id):
     """Display details for a specific route"""
-    if request.user.is_staff:
-        route = get_object_or_404(Route, pk=route_id)
-    else:
-        route = get_object_or_404(Route, pk=route_id, user=request.user)
-    if not request.user.is_staff and route.user != request.user:
-        return HttpResponseForbidden("You do not have permission to view this route.")
+    route = get_object_or_404(Route, pk=route_id)
+
+    if not request.user.is_staff:
+        if route.user != request.user:
+            # jeśli user próbuje wejść w cudzą route -> redirect
+            return redirect('/routes')  # <-- ZMIEŃ na swoją nazwę URL
     points = RoutePoint.objects.filter(route=route).order_by("sequence_number")
 
     needs_optimization = points.filter(sequence_number__isnull=True).exists()
@@ -113,7 +114,7 @@ def route_detail(request, route_id):
         'needs_optimization': needs_optimization
     })
 
-
+@login_required(login_url='/')
 def route_create(request):
     # encoded route
     encoded_polyline = "_f}vH_q|fBLGJKBA@AFGDE@ABCPURU@AN]BGFWBEBMH[F[BK@GHi@@EDW@KVcBBMDY@IBUBSBKFc@BSFa@@IJu@Hu@Fa@Fa@T}ADQRaAJe@@E?E@CBO@KFi@Dg@Bw@@I?Q@]?C?K?Y?K?W@yA?uB?K?k@Ay@C{@Gi@Ie@EUI]EO"
@@ -147,7 +148,7 @@ def route_create(request):
         'form': form
     })
 
-
+@login_required(login_url='/')
 def route_update(request, route_id):
     """Update an existing route"""
     route = get_object_or_404(Route, pk=route_id)

@@ -121,8 +121,12 @@ STATICFILES_DIRS = [
     BASE_DIR / 'web' / 'staticapp',
 ]
 
+LOGIN_REDIRECT_URL = '/routes/'
+LOGOUT_REDIRECT_URL = '/'
+PASSWORD_CHANGE_REDIRECT_URL = '/accounts/password_change/done/'
+
 # WhiteNoise configuration for serving static files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+#STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'

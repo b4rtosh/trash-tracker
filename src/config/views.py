@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.db import connection
 from django.conf import settings
 
-def home(request):
+def render_home(request):
     return render(request, "home.html")
 
 def health_check(request):
