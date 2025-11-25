@@ -6,7 +6,7 @@ on:
       target_url:
         description: "Target URL to scan"
         required: true
-        default: "https://trash-tracker-alb-app-820015371.eu-central-1.elb.amazonaws.com/"
+        default: "https://trash-tracker-alb-app-856213066.eu-central-1.elb.amazonaws.com/"
 
 jobs:
   dast-scans:
