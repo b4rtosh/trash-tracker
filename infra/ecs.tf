@@ -53,7 +53,7 @@ resource "aws_ecs_task_definition" "app" {
         value = "5432"
       },
       {
-        name  = "OSRM_HOST"
+        name  = "OSRM_BASE_URL"
         value = "http://${aws_lb.osrm_internal.dns_name}:5000"
       },
       {
