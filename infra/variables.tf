@@ -32,12 +32,6 @@ variable "db_master_username" {
   sensitive   = true
 }
 
-variable "db_master_password" {
-  description = "Master password for admin only"
-  type        = string
-  sensitive   = true
-}
-
 variable "osrm_map_data_url" {
   description = "URL to download OSRM map data"
   type        = string
@@ -72,4 +66,22 @@ variable "run_migrations" {
   description = "Whether to run migrations on app startup"
   type        = bool
   default     = false
+}
+
+variable "django_superuser_username" {
+  description = "User name for superuser"
+  type = string
+  sensitive = true
+}
+
+variable "django_superuser_email" {
+  description = "Email for superuser"
+  type = string
+  sensitive = true
+}
+
+variable "django_superuser_password" {
+  description = "Password for superuser"
+  type = string
+  sensitive = true
 }

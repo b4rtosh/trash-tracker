@@ -1,5 +1,5 @@
 module "cluster" {
-  source = "terraform-aws-modules/rds-aurora/aws"
+  source  = "terraform-aws-modules/rds-aurora/aws"
   version = "9.16.1"
   name          = "${var.app_name}-aurora-cluster"
   database_name = replace(var.app_name, "-", "_")  # Aurora doesn't allow hyphens in DB names
@@ -29,9 +29,9 @@ module "cluster" {
     }
   }
 
-  # Master credentials
-  master_username = var.db_master_username
-  master_password = var.db_master_password
+  # Master credentials - AWS managed
+  master_username             = var.db_master_username
+  manage_master_user_password = true
 
   storage_encrypted   = true
   apply_immediately   = true
@@ -41,7 +41,7 @@ module "cluster" {
   
   skip_final_snapshot = true
   deletion_protection = false
-  # Backup configuration
+
   backup_retention_period      = 7
   preferred_backup_window      = "03:00-04:00"
   preferred_maintenance_window = "mon:04:00-mon:05:00"
