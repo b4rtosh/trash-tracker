@@ -38,7 +38,7 @@ resource "aws_iam_role_policy" "ecs_exec_policy" {
   })
 }
 
-# Add Secrets Manager permissions
+# Combined Secrets Manager permissions for all secrets
 resource "aws_iam_role_policy" "ecs_secrets_policy" {
   name = "ecsSecretsPolicy"
   role = aws_iam_role.ecs_task_execution_role.id
@@ -52,7 +52,8 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          aws_secretsmanager_secret.db_password.arn
+          module.cluster.cluster_master_user_secret[0].secret_arn,
+          aws_secretsmanager_secret.django_superuser.arn
         ]
       },
       {

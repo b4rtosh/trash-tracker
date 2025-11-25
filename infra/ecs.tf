@@ -19,7 +19,7 @@ resource "aws_ecs_task_definition" "app" {
     # Conditionally override the command to run migrations first
     command = var.run_migrations ? [
       "sh", "-c", 
-      "python manage.py makemigrations routes --noinput && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8080"
+      "python manage.py makemigrations routes --noinput && python manage.py migrate && python manage.py create_superuser_if_none && gunicorn config.wsgi:application --bind 0.0.0.0:8080"
     ] : null
     
     portMappings = [{
@@ -53,7 +53,7 @@ resource "aws_ecs_task_definition" "app" {
         value = "5432"
       },
       {
-        name  = "OSRM_HOST"
+        name  = "OSRM_BASE_URL"
         value = "http://${aws_lb.osrm_internal.dns_name}:5000"
       },
       {
@@ -62,7 +62,11 @@ resource "aws_ecs_task_definition" "app" {
       },
       {
         name = "CSRF_TRUSTED_ORIGINS"
-        value = "https://${module.alb.dns_name}"
+        value = join(",", [
+          "https://${module.alb.dns_name}",
+          "https://trash-tracker.pl",
+          "https://www.trash-tracker.pl"
+        ])
       },
       {
         name = "DATABASE_ENGINE",
@@ -73,7 +77,19 @@ resource "aws_ecs_task_definition" "app" {
     secrets = [
       {
         name      = "DATABASE_PASSWORD"
-        valueFrom = aws_secretsmanager_secret.db_password.arn
+        valueFrom = "${module.cluster.cluster_master_user_secret[0].secret_arn}:password::"
+      },
+      {
+        name      = "DJANGO_SUPERUSER_USERNAME"
+        valueFrom = aws_secretsmanager_secret.django_superuser.arn
+      },
+      {
+        name      = "DJANGO_SUPERUSER_EMAIL"
+        valueFrom = "${aws_secretsmanager_secret.django_superuser.arn}:email::"
+      },
+      {
+        name      = "DJANGO_SUPERUSER_PASSWORD"
+        valueFrom = "${aws_secretsmanager_secret.django_superuser.arn}:password::"
       }
     ]
     
