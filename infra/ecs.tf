@@ -62,7 +62,11 @@ resource "aws_ecs_task_definition" "app" {
       },
       {
         name = "CSRF_TRUSTED_ORIGINS"
-        value = "https://${module.alb.dns_name}"
+        value = join(",", [
+          "https://${module.alb.dns_name}",
+          "https://trash-tracker.pl",
+          "https://www.trash-tracker.pl"
+        ])
       },
       {
         name = "DATABASE_ENGINE",
