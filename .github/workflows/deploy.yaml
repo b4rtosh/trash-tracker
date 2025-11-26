@@ -99,7 +99,7 @@ jobs:
         fi
 
   manual-approval:
-    environment: 'Prod'
+    environment: 'production'
     runs-on: ubuntu-latest
     needs:
       - plan
