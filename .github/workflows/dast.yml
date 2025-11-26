@@ -31,8 +31,9 @@ jobs:
       # --------------------------------------
       - name: Run ZAP Baseline Scan
         run: |
+          mkdir -p /tmp/zap
           docker run \
-            -v $(pwd):/zap/wrk/:rw \
+            -v /tmp/zap:/zap/wrk \
             --network=host \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py \
@@ -75,6 +76,6 @@ jobs:
         with:
           name: dast-reports
           path: |
-            zap_scan/**
+            /tmp/zap
             wapiti-report.html
             sqlmap_output/**
