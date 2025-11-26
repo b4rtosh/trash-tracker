@@ -25,32 +25,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare ZAP workspace
-        run: |
-          mkdir -p /tmp/zap
-          cat <<EOF > /tmp/zap/zap.yaml
-          parameters:
-            target: "${{ github.event.inputs.target_url }}"
-
-          jobs:
-            - type: spider
-              parameters:
-                url: "${{ github.event.inputs.target_url }}"
-
-            - type: passiveScan-wait
-
-          failOnScanError: false
-          failOnWarning: false
-          EOF
-
-      - name: Run ZAP Scan
-        run: |
-          docker run --rm \
-            -v /tmp/zap:/zap/wrk \
-            ghcr.io/zaproxy/zaproxy:stable \
-            zap.sh -cmd -autorun /zap/wrk/zap.yaml
-          
-
       # --------------------------------------
       # WAPITI
       # --------------------------------------
@@ -75,6 +49,46 @@ jobs:
             --batch --crawl=2 --level=2 --risk=1 \
             --dbs --forms --output-dir=sqlmap_output
         continue-on-error: true
+
+      # --------------------------------------
+      # ZAP – przygotowanie zap.yaml
+      # --------------------------------------
+      - name: Prepare ZAP workspace
+        run: |
+          mkdir -p /tmp/zap
+          cat <<EOF > /tmp/zap/zap.yaml
+          parameters:
+            target: "${{ github.event.inputs.target_url }}"
+
+          environments:
+            - name: Default Environment
+              type: local
+
+          contexts:
+            - name: Default Context
+              include:
+                - "${{ github.event.inputs.target_url }}*"
+
+          jobs:
+            - type: spider
+              parameters:
+                context: "Default Context"
+
+            - type: passiveScan-wait
+
+          failOnScanError: false
+          failOnWarning: false
+          EOF
+
+      # --------------------------------------
+      # ZAP – skanowanie
+      # --------------------------------------
+      - name: Run ZAP Scan
+        run: |
+          docker run --rm \
+            -v /tmp/zap:/zap/wrk \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap.sh -cmd -autorun /zap/wrk/zap.yaml
 
       # --------------------------------------
       # Upload artifacts
