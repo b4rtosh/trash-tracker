@@ -100,7 +100,10 @@ jobs:
         terraform show -no-color tf.plan > tfplan.txt
         
     - name: Show Plan
-      run: cat ./infra/tfplan.txt
+      run: |
+        echo "++++++++++++++++++++++++"
+        cat ./infra/tfplan.txt
+        echo "++++++++++++++++++++++++"
 
     - name: Publish plan
       uses: actions/upload-artifact@v4
@@ -114,9 +117,7 @@ jobs:
     needs:
       - plan
     if: always() && needs.plan.result == 'success'
-    steps:
-
-      
+    steps:      
       - run: echo "Approved to Prod"
 
   deploy:
@@ -156,7 +157,7 @@ jobs:
         name: tfplan
         path: ./infra
 
-    - name: Deploy with Migrations
+    - name: Deploy according to tfplan
       working-directory: ./infra
       env:
         TF_VAR_app_container_image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build.outputs.image-tag || 'latest' }}
@@ -167,7 +168,6 @@ jobs:
         TF_VAR_django_superuser_password: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
         TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
       run: terraform apply -auto-approve tf.plan
-
 
     - name: Get Outputs
       id: tf-outputs
@@ -188,5 +188,4 @@ jobs:
         echo "Container built: ${BUILD_RUN:-true}"
         echo "Migrations run: ${MIGRATIONS_RUN:-false}"
         echo "ALB DNS: $ALB_DNS"
-        echo "Your site: https://$DOMAIN"
         echo "=========================================="
