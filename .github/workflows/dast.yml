@@ -23,8 +23,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: ${{ github.event.inputs.target_url }}
-          rules_file_name: ".zap-rules.txt"
-          cmd_options: "-a"
+          cmd_options: "-a"         # agresywny tryb
         continue-on-error: true
 
       # --------------------------------------
@@ -35,7 +34,8 @@ jobs:
 
       - name: Run Wapiti scan
         run: |
-          wapiti -u "${{ github.event.inputs.target_url }}" -f html -o wapiti-report.html
+          wapiti -u "${{ github.event.inputs.target_url }}" \
+            -f html -o wapiti-report.html
         continue-on-error: true
 
       # --------------------------------------
@@ -57,10 +57,10 @@ jobs:
       - name: Run Burp Scanner
         run: |
           docker run -d --name burp -p 1337:1337 vmware/burp-rest-api
-          sleep 15
+          sleep 20
           curl -X POST "http://localhost:1337/v0.1/scan" \
               -H "Content-Type: application/json" \
-              -d '{"url": "${{ github.event.inputs.target_url }}"}' \
+              -d '{"url": "'${{ github.event.inputs.target_url }}'"}' \
               -o burp_result.json
         continue-on-error: true
 
@@ -72,7 +72,7 @@ jobs:
         with:
           name: dast-reports
           path: |
-            owasp-zap-report.html
+            zap_scan/**
             wapiti-report.html
             sqlmap_output/**
             burp_result.json
