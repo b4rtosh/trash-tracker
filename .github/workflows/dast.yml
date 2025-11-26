@@ -17,7 +17,6 @@ on:
 
 env:
   TARGET_URL: ${{ github.event.inputs.target_url || 'https://trash-tracker.pl/' }}
-
 jobs:
   dast-scans:
     runs-on: ubuntu-latest
@@ -26,31 +25,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --------------------------------------
-      # OWASP ZAP
-      # --------------------------------------
       - name: Prepare ZAP workspace
         run: |
-            mkdir -p /tmp/zap
-            cat <<EOF > /tmp/zap/zap.yaml
-            parameters:
+          mkdir -p /tmp/zap
+          cat <<EOF > /tmp/zap/zap.yaml
+          parameters:
             target: "${{ github.event.inputs.target_url }}"
-            jobs:
+
+          jobs:
             - type: spider
-             parameters:
-               url: "${{ github.event.inputs.target_url }}"
+              parameters:
+                url: "${{ github.event.inputs.target_url }}"
+
             - type: passiveScan-wait
-            failOnScanError: false
-            failOnWarning: false
-            EOF
+
+          failOnScanError: false
+          failOnWarning: false
+          EOF
 
       - name: Run ZAP Scan
         run: |
-            docker run --rm \
-              -v /tmp/zap:/zap/wrk \
-              ghcr.io/zaproxy/zaproxy:stable \
-              zap.sh -cmd -autorun /zap/wrk/zap.yaml
-      
+          docker run --rm \
+            -v /tmp/zap:/zap/wrk \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap.sh -cmd -autorun /zap/wrk/zap.yaml
+          
 
       # --------------------------------------
       # WAPITI
