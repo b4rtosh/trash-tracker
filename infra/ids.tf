@@ -2,7 +2,7 @@
 resource "aws_flow_log" "main" {
   iam_role_arn    = aws_iam_role.flow_log_role.arn
   log_destination = aws_cloudwatch_log_group.flow_logs.arn
-  traffic_type    = "ALL"
+  traffic_type    = "REJECT"
   vpc_id          = module.vpc.vpc_id
 
   tags = {
