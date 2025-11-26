@@ -1,7 +1,7 @@
 name: DAST Security Scans
 
 on:
-  # --- ręczne uruchamianie ---
+  # Ręczne uruchamianie
   workflow_dispatch:
     inputs:
       target_url:
@@ -9,7 +9,7 @@ on:
         required: true
         default: "https://trash-tracker.pl/"
 
-  # --- automatyczne uruchamianie na push/PR ---
+  # Automatyczne uruchamianie na push/PR
   pull_request:
     branches: [ "dast-scan-feature" ]
   push:
@@ -20,26 +20,25 @@ env:
 jobs:
   dast-scans:
     runs-on: ubuntu-latest
-
+    name: Run DAST Scans
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --------------------------------------
+      # -------------------------------
       # WAPITI
-      # --------------------------------------
+      # -------------------------------
       - name: Install Wapiti
         run: sudo apt update && sudo apt install -y wapiti
 
       - name: Run Wapiti scan
         run: |
-          wapiti -u "${{ env.TARGET_URL }}" \
-            -f html -o wapiti-report.html
+          wapiti -u "${{ env.TARGET_URL }}" -f html -o wapiti-report.html
         continue-on-error: true
 
-      # --------------------------------------
+      # -------------------------------
       # SQLMAP
-      # --------------------------------------
+      # -------------------------------
       - name: Install SQLMap
         run: sudo apt install -y sqlmap
 
@@ -50,54 +49,23 @@ jobs:
             --dbs --forms --output-dir=sqlmap_output
         continue-on-error: true
 
-      # --------------------------------------
-      # ZAP – przygotowanie zap.yaml
-      # --------------------------------------
-      - name: Prepare ZAP workspace
-        run: |
-          mkdir -p /tmp/zap
-          cat <<EOF > /tmp/zap/zap.yaml
-          parameters:
-            target: "${{ github.event.inputs.target_url }}"
+      # -------------------------------
+      # ZAP (baseline scan)
+      # -------------------------------
+      - name: ZAP Scan
+        uses: zaproxy/action-baseline@v0.6.1
+        with:
+          target: ${{ env.TARGET_URL }}
+          cmd_options: '-a'
 
-          environments:
-            - name: Default Environment
-              type: local
-
-          contexts:
-            - name: Default Context
-              include:
-                - "${{ github.event.inputs.target_url }}*"
-
-          jobs:
-            - type: spider
-              parameters:
-                context: "Default Context"
-
-            - type: passiveScan-wait
-
-          failOnScanError: false
-          failOnWarning: false
-          EOF
-
-      # --------------------------------------
-      # ZAP – skanowanie
-      # --------------------------------------
-      - name: Run ZAP Scan
-        run: |
-          docker run --rm \
-            -v /tmp/zap:/zap/wrk \
-            ghcr.io/zaproxy/zaproxy:stable \
-            zap.sh -cmd -autorun /zap/wrk/zap.yaml
-
-      # --------------------------------------
+      # -------------------------------
       # Upload artifacts
-      # --------------------------------------
+      # -------------------------------
       - name: Upload DAST reports
         uses: actions/upload-artifact@v4
         with:
           name: dast-reports
           path: |
-            /tmp/zap
             wapiti-report.html
             sqlmap_output/**
+            report.html
