@@ -1,12 +1,19 @@
 name: DAST Security Scans
 
 on:
+  # --- ręczne uruchamianie ---
   workflow_dispatch:
     inputs:
       target_url:
         description: "Target URL to scan"
         required: true
         default: "https://trash-tracker-alb-app-856213066.eu-central-1.elb.amazonaws.com/"
+
+  # --- automatyczne uruchamianie na push/PR ---
+  pull_request:
+    branches: [ "dast-scan-feature" ]
+  push:
+    branches: [ "dast-scan-feature" ]
 
 jobs:
   dast-scans:
@@ -23,7 +30,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: ${{ github.event.inputs.target_url }}
-          cmd_options: "-a"         # agresywny tryb
+          cmd_options: "-a"
         continue-on-error: true
 
       # --------------------------------------
