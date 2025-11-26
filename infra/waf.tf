@@ -32,11 +32,28 @@ resource "aws_wafv2_web_acl" "default" {
     }
     statement {
       or_statement {
+        # Query string checks
         statement {
           byte_match_statement {
             search_string = "union select"
             field_to_match {
               query_string {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        # Body checks for SQL injection
+        statement {
+          byte_match_statement {
+            search_string = "union select"
+            field_to_match {
+              body {
+                oversize_handling = "MATCH"
+              }
             }
             text_transformation {
               priority = 0
@@ -60,7 +77,50 @@ resource "aws_wafv2_web_acl" "default" {
         }
         statement {
           byte_match_statement {
+            search_string = "' or '"
+            field_to_match {
+              body {
+                oversize_handling = "MATCH"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        statement {
+          byte_match_statement {
             search_string = "1=1"
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string = "1=1"
+            field_to_match {
+              body {
+                oversize_handling = "MATCH"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string = "drop table"
             field_to_match {
               query_string {}
             }
@@ -75,7 +135,9 @@ resource "aws_wafv2_web_acl" "default" {
           byte_match_statement {
             search_string = "drop table"
             field_to_match {
-              query_string {}
+              body {
+                oversize_handling = "MATCH"
+              }
             }
             text_transformation {
               priority = 0
