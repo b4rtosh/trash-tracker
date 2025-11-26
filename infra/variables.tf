@@ -85,3 +85,9 @@ variable "django_superuser_password" {
   type = string
   sensitive = true
 }
+
+variable "alert_email" {
+  description = "Destination for IDS alerts"
+  type        = string
+  default = "272249@student.pwr.edu.pl,272279@student.pwr.edu.pl,272174@student.pwr.edu.pl"
+}
