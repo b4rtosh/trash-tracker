@@ -93,10 +93,20 @@ jobs:
         TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
       run: |
         if [ "${{ github.event.inputs.run_migrations }}" == "true" ]; then
-          terraform plan -var-file=migrate.tfvars
+          terraform plan -var-file=migrate.tfvars -out tf.plan
         else
-          terraform plan -var-file=prod.tfvars
+          terraform plan -var-file=prod.tfvars -out tf.plan
         fi
+        terraform show -no-color tf.plan > tfplan.txt
+        
+    - name: Show Plan
+      run: cat ./infra/tfplan.txt
+
+    - name: Publish plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan
+        path: ./infra/tf.plan
 
   manual-approval:
     environment: 'production'
@@ -105,6 +115,8 @@ jobs:
       - plan
     if: always() && needs.plan.result == 'success'
     steps:
+
+      
       - run: echo "Approved to Prod"
 
   deploy:
@@ -137,7 +149,13 @@ jobs:
     - name: Terraform Init
       working-directory: ./infra
       run: terraform init -backend-config="backend.hcl"
-         
+
+    - name: Download tfplan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan
+        path: ./infra
+
     - name: Deploy with Migrations
       working-directory: ./infra
       env:
@@ -148,12 +166,8 @@ jobs:
         TF_VAR_django_superuser_email: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
         TF_VAR_django_superuser_password: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
         TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
-      run: |
-        if [ "${{ github.event.inputs.run_migrations }}" == "true" ]; then
-          terraform apply -auto-approve -var-file=migrate.tfvars
-        else
-          terraform apply -auto-approve -var-file=prod.tfvars
-        fi
+      run: terraform apply -auto-approve tf.plan
+
 
     - name: Get Outputs
       id: tf-outputs
