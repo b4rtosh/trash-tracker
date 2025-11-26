@@ -65,7 +65,7 @@ jobs:
       # BURP SUITE VIA REST API
       # --------------------------------------
       - name: Run Burp Scanner
-          run: |
+        run: |
             docker run -d --name burp -p 1337:1337 portswigger/burp-rest-api
             sleep 20
             curl -X POST "http://localhost:1337/v0.1/scan" \
