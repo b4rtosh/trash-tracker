@@ -30,17 +30,26 @@ jobs:
       # OWASP ZAP
       # --------------------------------------
       - name: Prepare ZAP workspace
-        run: mkdir -p /tmp/zap && cp .github/zap/zap.yaml /tmp/zap/zap.yaml
+        run: |
+            mkdir -p /tmp/zap
+            cat <<EOF > /tmp/zap/zap.yaml
+            parameters:
+            target: "${{ github.event.inputs.target_url }}"
+            jobs:
+            - type: spider
+             parameters:
+               url: "${{ github.event.inputs.target_url }}"
+            - type: passiveScan-wait
+            failOnScanError: false
+            failOnWarning: false
+            EOF
 
       - name: Run ZAP Scan
         run: |
-          docker run --rm \
-            -v /tmp/zap:/zap/wrk \
-            ghcr.io/zaproxy/zaproxy:stable \
-            echo "failOnScanError: false \
-            failOnWarning: false" >> /zap/wrk/zap.yaml \
-            zap.sh -cmd -autorun /zap/wrk/zap.yaml
-      
+            docker run --rm \
+              -v /tmp/zap:/zap/wrk \
+              ghcr.io/zaproxy/zaproxy:stable \
+              zap.sh -cmd -autorun /zap/wrk/zap.yaml
       
 
       # --------------------------------------
