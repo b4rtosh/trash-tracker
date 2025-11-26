@@ -7,13 +7,16 @@ on:
       target_url:
         description: "Target URL to scan"
         required: true
-        default: "https://trash-tracker-alb-app-856213066.eu-central-1.elb.amazonaws.com/"
+        default: "https://trash-tracker.pl/"
 
   # --- automatyczne uruchamianie na push/PR ---
   pull_request:
     branches: [ "dast-scan-feature" ]
   push:
     branches: [ "dast-scan-feature" ]
+
+env:
+  TARGET_URL: ${{ github.event.inputs.target_url || 'https://trash-tracker.pl/' }}
 
 jobs:
   dast-scans:
@@ -29,7 +32,7 @@ jobs:
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0
         with:
-          target: ${{ github.event.inputs.target_url }}
+          target: ${{ env.TARGET_URL }}
           cmd_options: "-a"
         continue-on-error: true
 
@@ -41,7 +44,7 @@ jobs:
 
       - name: Run Wapiti scan
         run: |
-          wapiti -u "${{ github.event.inputs.target_url }}" \
+          wapiti -u "${{ env.TARGET_URL }}" \
             -f html -o wapiti-report.html
         continue-on-error: true
 
@@ -53,7 +56,7 @@ jobs:
 
       - name: Run SQLMap (safe mode)
         run: |
-          sqlmap -u "${{ github.event.inputs.target_url }}" \
+          sqlmap -u "${{ env.TARGET_URL }}" \
             --batch --crawl=2 --level=2 --risk=1 \
             --dbs --forms --output-dir=sqlmap_output
         continue-on-error: true
@@ -62,13 +65,13 @@ jobs:
       # BURP SUITE VIA REST API
       # --------------------------------------
       - name: Run Burp Scanner
-        run: |
-          docker run -d --name burp -p 1337:1337 vmware/burp-rest-api
-          sleep 20
-          curl -X POST "http://localhost:1337/v0.1/scan" \
-              -H "Content-Type: application/json" \
-              -d '{"url": "'${{ github.event.inputs.target_url }}'"}' \
-              -o burp_result.json
+          run: |
+            docker run -d --name burp -p 1337:1337 portswigger/burp-rest-api
+            sleep 20
+            curl -X POST "http://localhost:1337/v0.1/scan" \
+                -H "Content-Type: application/json" \
+                -d '{"url": "'${{ env.TARGET_URL }}'"}' \
+                -o burp_result.json
         continue-on-error: true
 
       # --------------------------------------
