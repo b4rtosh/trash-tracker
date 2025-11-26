@@ -128,18 +128,3 @@ resource "aws_cloudwatch_metric_alarm" "port_scan_alarm" {
     Environment = "production"
   }
 }
-
-# SNS Topic for alerts
-resource "aws_sns_topic" "ids_alerts" {
-  name = "${var.app_name}-security-alerts"
-
-  tags = {
-    Environment = "production"
-  }
-}
-
-resource "aws_sns_topic_subscription" "ids_email" {
-  topic_arn = aws_sns_topic.ids_alerts.arn
-  protocol  = "email"
-  endpoint  = var.alert_email
-}
