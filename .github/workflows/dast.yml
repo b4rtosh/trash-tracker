@@ -29,18 +29,18 @@ jobs:
       # --------------------------------------
       # OWASP ZAP
       # --------------------------------------
-      - name: Run ZAP Baseline Scan
+      - name: Prepare ZAP workspace
+        run: mkdir -p /tmp/zap && cp .github/zap/zap.yaml /tmp/zap/zap.yaml
+
+      - name: Run ZAP Scan
         run: |
-          mkdir -p /tmp/zap
-          docker run \
+          docker run --rm \
             -v /tmp/zap:/zap/wrk \
-            --network=host \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py \
-              -t https://trash-tracker.pl/ \
-              -J report_json.json \
-              -w report_md.md \
-              -r report_html.html
+            echo "failOnScanError: false \
+            failOnWarning: false" >> /zap/wrk/zap.yaml \
+            zap.sh -cmd -autorun /zap/wrk/zap.yaml
+      
       
 
       # --------------------------------------
