@@ -13,11 +13,7 @@ on:
         required: false
         type: boolean
         default: true
-      deploy_solution:
-        description: 'Deploy the whole app without migration'
-        required: false
-        type: boolean
-        default: true
+
 env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: trash-tracker/app
@@ -97,17 +93,31 @@ jobs:
         TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
       run: |
         if [ "${{ github.event.inputs.run_migrations }}" == "true" ]; then
-          terraform plan -var-file=migrate.tfvars
+          terraform plan -var-file=migrate.tfvars -out tf.plan
         else
-          terraform plan -var-file=prod.tfvars
+          terraform plan -var-file=prod.tfvars -out tf.plan
         fi
+        terraform show -no-color tf.plan > tfplan.txt
+        
+    - name: Show Plan
+      run: |
+        echo "++++++++++++++++++++++++"
+        cat ./infra/tfplan.txt
+        echo "++++++++++++++++++++++++"
+
+    - name: Publish plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan
+        path: ./infra/tf.plan
 
   manual-approval:
-    environment: 'Prod'
+    environment: 'production'
     runs-on: ubuntu-latest
     needs:
       - plan
-    steps:
+    if: always() && needs.plan.result == 'success'
+    steps:      
       - run: echo "Approved to Prod"
 
   deploy:
@@ -115,8 +125,7 @@ jobs:
       - build
       - manual-approval
     runs-on: ubuntu-latest
-    # Run when migrations are requested, regardless of build job status
-    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.manual-approval.result == 'success')
+    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.manual-approval.result == 'success'
     
     steps:
     - name: Checkout code
@@ -141,8 +150,14 @@ jobs:
     - name: Terraform Init
       working-directory: ./infra
       run: terraform init -backend-config="backend.hcl"
-         
-    - name: Deploy with Migrations
+
+    - name: Download tfplan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan
+        path: ./infra
+
+    - name: Deploy according to tfplan
       working-directory: ./infra
       env:
         TF_VAR_app_container_image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build.outputs.image-tag || 'latest' }}
@@ -152,12 +167,7 @@ jobs:
         TF_VAR_django_superuser_email: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
         TF_VAR_django_superuser_password: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
         TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
-      run: |
-        if [ "${{ github.event.inputs.run_migrations }}" == "true" ]; then
-          terraform apply -auto-approve -var-file=migrate.tfvars
-        else
-          terraform apply -auto-approve -var-file=prod.tfvars
-        fi
+      run: terraform apply -auto-approve tf.plan
 
     - name: Get Outputs
       id: tf-outputs
@@ -178,5 +188,4 @@ jobs:
         echo "Container built: ${BUILD_RUN:-true}"
         echo "Migrations run: ${MIGRATIONS_RUN:-false}"
         echo "ALB DNS: $ALB_DNS"
-        echo "Your site: https://$DOMAIN"
         echo "=========================================="
