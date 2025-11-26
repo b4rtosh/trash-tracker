@@ -2,9 +2,8 @@ name: SAST Scan PR
 
 on:
   pull_request:
-    branches: [ "sast-scan-feature" ]
-  push:
-    branches: [ "sast-scan-feature" ]
+    types: [opened, synchronize, reopened, edited]
+    branches: [ "main", "prod" ]
 
 jobs:
   sast:
