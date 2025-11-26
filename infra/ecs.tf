@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "app" {
       },
       {
         name      = "DJANGO_SUPERUSER_USERNAME"
-        valueFrom = aws_secretsmanager_secret.django_superuser.arn
+        valueFrom = "${aws_secretsmanager_secret.django_superuser.arn}:username::"
       },
       {
         name      = "DJANGO_SUPERUSER_EMAIL"
