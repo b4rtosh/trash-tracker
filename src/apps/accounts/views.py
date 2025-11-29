@@ -2,7 +2,6 @@ from django.contrib.auth import login
 from django.shortcuts import render, redirect
 from .forms import SignUpForm
 from django.contrib.auth.views import LoginView
-from django.shortcuts import redirect
 
 def signup_view(request):
     if request.method == "POST":
