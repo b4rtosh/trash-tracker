@@ -67,3 +67,6 @@ src/.env
 node_modules/
 
 migrations/
+migrations
+
+osrm
