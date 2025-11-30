@@ -16,7 +16,7 @@ module "alb" {
       port            = 443
       protocol        = "HTTPS"
       certificate_arn = aws_acm_certificate.self_signed.arn
-      ssl_policy      = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      ssl_policy = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
       
       forward = {
         target_group_key = "app"
