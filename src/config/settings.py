@@ -1,14 +1,24 @@
 import os
-import sys
 from pathlib import Path
-import environ
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env(DEBUG=(bool, False))
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-SECRET_KEY = env('SECRET_KEY')
-DEBUG = env('DEBUG')
-# Modify INSTALLED_APPS to use apps in the apps directory
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-change-this')
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# CSRF trusted origins for cross-origin requests
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:8000,http://127.0.0.1:8000'
+).split(',')
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -18,12 +28,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     # Local apps
-    'apps.routes'
+    'apps.routes',
+    'apps.accounts',
 ]
 
-# Add middleware configuration - this was missing
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -32,22 +43,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Add ROOT_URLCONF setting
 ROOT_URLCONF = 'config.urls'
-
-STATIC_URL = '/static/'
-
-# Add this to tell Django where to look for static files
-STATICFILES_DIRS = [
-    BASE_DIR / "web/staticapp",  # Adjust the path based on your directory structure
-]
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'web/templates'
-        ],
+        'DIRS': [BASE_DIR / 'web' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -60,18 +61,127 @@ TEMPLATES = [
     },
 ]
 
+WSGI_APPLICATION = 'config.wsgi.application'
+
+# Database - Use RDS PostgreSQL in production with read replica support
 DATABASES = {
-    "default": {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'trash_tracker',
-            'USER': 'admin',
-            'PASSWORD': 'adminpass',
-            'HOST': 'localhost',
-            'PORT': '3306',
+    'default': {
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
+        'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
+        'USER': os.environ.get('DATABASE_USER', 'admin'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'adminpass'),
+        'HOST': os.environ.get('DATABASE_WRITER_HOST', os.environ.get('DATABASE_HOST', 'localhost')),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
+        'OPTIONS': {
+            'connect_timeout': 10,
         },
+    },
+    'replica': {
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
+        'NAME': os.environ.get('DATABASE_NAME', 'trash_tracker'),
+        'USER': os.environ.get('DATABASE_USER', 'admin'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'adminpass'),
+        'HOST': os.environ.get('DATABASE_READER_HOST', os.environ.get('DATABASE_HOST', 'localhost')),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    }
 }
 
-# Update the base directory for Python to find apps
-sys.path.insert(0, str(BASE_DIR / 'apps'))
-DJANGO_TEMPLATE_DEBUG = True
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+# Database routers
+DATABASE_ROUTERS = ['config.db_router.ReplicaRouter']
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'web' / 'staticapp',
+]
+
+LOGIN_REDIRECT_URL = '/routes/'
+LOGOUT_REDIRECT_URL = '/'
+PASSWORD_CHANGE_REDIRECT_URL = '/accounts/password_change/done/'
+
+# WhiteNoise configuration for serving static files
+#STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Session Configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Store sessions in database
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = False
+SESSION_COOKIE_NAME = 'trash_tracker_sessionid'
+
+# Session security in production
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True  # Only send cookie over HTTPS
+
+# Security settings for production
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}

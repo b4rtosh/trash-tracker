@@ -70,3 +70,6 @@ migrations/
 migrations
 
 osrm
+
+.terraform*
+*local.hcl

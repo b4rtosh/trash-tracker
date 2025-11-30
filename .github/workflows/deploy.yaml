@@ -1,0 +1,191 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_migrations:
+        description: 'Run database migrations'
+        required: false
+        type: boolean
+        default: false
+      build_container:
+        description: 'Build container image'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: trash-tracker/app
+
+jobs:
+  build:
+    if: github.event.inputs.build_container != 'false'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.build.outputs.image-tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and push Docker image
+      id: build
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./src
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  plan:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+
+    - name: Terraform Init
+      working-directory: ./infra
+      run: terraform init -backend-config="backend.hcl"
+
+    - name: Terraform Plan
+      working-directory: ./infra
+      env:
+        TF_VAR_app_container_image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build.outputs.image-tag || 'latest' }}
+        TF_VAR_db_master_username: ${{ secrets.DB_MASTER_USERNAME }}
+        TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
+        TF_VAR_django_superuser_username: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+        TF_VAR_django_superuser_email: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+        TF_VAR_django_superuser_password: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+        TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
+      run: |
+        if [ "${{ github.event.inputs.run_migrations }}" == "true" ]; then
+          terraform plan -var-file=migrate.tfvars -out tf.plan
+        else
+          terraform plan -var-file=prod.tfvars -out tf.plan
+        fi
+        terraform show -no-color tf.plan > tfplan.txt
+        
+    - name: Show Plan
+      run: |
+        echo "++++++++++++++++++++++++"
+        cat ./infra/tfplan.txt
+        echo "++++++++++++++++++++++++"
+
+    - name: Publish plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan
+        path: ./infra/tf.plan
+
+  manual-approval:
+    environment: 'production'
+    runs-on: ubuntu-latest
+    needs:
+      - plan
+    if: always() && needs.plan.result == 'success'
+    steps:      
+      - run: echo "Approved to Prod"
+
+  deploy:
+    needs: 
+      - build
+      - manual-approval
+    runs-on: ubuntu-latest
+    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.manual-approval.result == 'success'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+
+    - name: Terraform Init
+      working-directory: ./infra
+      run: terraform init -backend-config="backend.hcl"
+
+    - name: Download tfplan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan
+        path: ./infra
+
+    - name: Deploy according to tfplan
+      working-directory: ./infra
+      env:
+        TF_VAR_app_container_image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build.outputs.image-tag || 'latest' }}
+        TF_VAR_db_master_username: ${{ secrets.DB_MASTER_USERNAME }}
+        TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
+        TF_VAR_django_superuser_username: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+        TF_VAR_django_superuser_email: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+        TF_VAR_django_superuser_password: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+        TF_VAR_request_rate_limit: ${{ vars.REQUEST_RATE_LIMIT }}
+      run: terraform apply -auto-approve tf.plan
+
+    - name: Get Outputs
+      id: tf-outputs
+      working-directory: ./infra
+      run: |
+        echo "alb_dns=$(terraform output -raw alb_dns_name)" >> $GITHUB_OUTPUT
+
+    - name: Display Configuration
+      env:
+        ALB_DNS: ${{ steps.tf-outputs.outputs.alb_dns }}
+        DOMAIN: ${{ secrets.DOMAIN_NAME }}
+        MIGRATIONS_RUN: ${{ github.event.inputs.run_migrations }}
+        BUILD_RUN: ${{ github.event.inputs.build_container }}
+      run: |
+        echo "=========================================="
+        echo "✅ Deployment Complete!"
+        echo "=========================================="
+        echo "Container built: ${BUILD_RUN:-true}"
+        echo "Migrations run: ${MIGRATIONS_RUN:-false}"
+        echo "ALB DNS: $ALB_DNS"
+        echo "=========================================="

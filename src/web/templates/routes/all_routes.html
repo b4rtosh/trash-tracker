@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>All Users' Routes (Admin)</h2>
+<ul class="route-list">
+    {% for route in routes %}
+    <div class="route-box">
+        <h3>
+            <a href="{% url 'routes:route_detail' route.id %}" style="color: lightgreen; text-decoration: none;">
+                {{ route.name }}
+            </a>
+        </h3>
+        <p style="color: white; font-size: 14px;">
+            Owner: {{ route.user.username }}
+        </p>
+    </div>
+    {% endfor %}
+</ul>
+{% endblock %}
