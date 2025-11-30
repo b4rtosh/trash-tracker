@@ -1,15 +1,172 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block content %}
-<div class="home-container">
-    <div class="home-box">
-        <h1 class="home-title">Welcome to TrashTracker</h1>
-        <p class="home-subtitle">
-            Track. Optimize. Protect our planet 🌍
-        </p>
-        <p class="home-description">
-            Manage and visualize your routes efficiently — all while keeping sustainability in focus.
-        </p>
-        <a href="{% url 'login' %}" class="btn home-login-btn">Log In</a>
+<h1 style="color:lightgreen; text-align:center;">Welcome to TrashTracker Demo</h1>
+<p style="color:white; text-align:center;">
+    Visualize, optimize, and manage your waste collection routes.<br>
+    Add addresses and generate routes using OSRM — without saving anything.
+</p>
+
+<h2>Demo Route Builder</h2>
+
+<form id="pointForm" style="margin-bottom: 20px;">
+    <label for="id_address" style="color: lightgreen;">Add Address (Demo only):</label><br>
+    <input type="text" name="street" id="id_street" placeholder="Street" required style="padding: 10px; width: 70%;">
+    <input type="text" name="city" id="id_city" placeholder="City" required style="padding: 10px; width: 70%;">
+    <input type="text" name="state" id="id_state" placeholder="State" style="padding: 10px; width: 70%;">
+    <input type="text" name="postal_code" id="id_postal_code" placeholder="Postal code" style="padding: 10px; width: 70%;">
+    <input type="text" name="country" id="id_country" placeholder="Country" required style="padding: 10px; width: 70%;">
+    <button type="button" id="addPointBtn" class="btn">Add Point (Demo)</button>
+    <button type="button" id="clearBtn" class="btn" style="margin-left:10px;">Clear Points</button>
+    <button type="button" id="generateRouteBtn" class="btn" style="margin-left:10px;">Generate Route</button>
+</form>
+
+<div style="display: flex; gap: 20px;">
+    <div style="margin-top: 20px; flex: 1;">
+        <div id="demoMap" style="width: 100%; height: 600px; border-radius: 6px; overflow: hidden;"></div>
+    </div>
+
+    <div style="flex: 1;">
+        <table>
+            <thead>
+            <tr>
+                <th>Sequence number</th>
+                <th>Id</th>
+                <th>Address</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="pointsTable">
+            <tr id="no-points-row">
+                <td colspan="6" style="text-align:center;">No points added yet.</td>
+            </tr>
+            </tbody>
+        </table>
     </div>
 </div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const defaultCenter = [51.107883, 17.038538];
+    const map = L.map('demoMap').setView(defaultCenter, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    let demoPoints = [];
+    let markers = {};
+    let routeLayer = null;
+
+    function renderTable() {
+        const tbody = document.getElementById('pointsTable');
+        tbody.innerHTML = '';
+        if (demoPoints.length === 0) {
+            tbody.innerHTML = '<tr id="no-points-row"><td colspan="6" style="text-align:center;">No points added yet.</td></tr>';
+            return;
+        }
+        demoPoints.forEach((p, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${idx}</td>
+                <td>${p.id}</td>
+                <td>${p.address_text}</td>
+                <td>${p.lat.toFixed(6)}</td>
+                <td>${p.lon.toFixed(6)}</td>
+                <td><button type="button" class="btn delete-point" data-point-id="${p.id}">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function addMarker(p) {
+        const m = L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.address_text);
+        markers[p.id] = m;
+    }
+
+    function removeMarker(id) {
+        if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+    }
+
+    let nextId = 1;
+
+    async function geocodeAddress(street, city, state, postal_code, country) {
+        const query = encodeURIComponent([street, city, state, postal_code, country].filter(Boolean).join(', '));
+        const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        return null;
+    }
+
+    document.getElementById('addPointBtn').addEventListener('click', async function () {
+    if (demoPoints.length >= 3) {
+        return alert('Max 3 points allowed for demo.');
+    }
+
+    const street = document.getElementById('id_street').value.trim();
+    const city = document.getElementById('id_city').value.trim();
+    const state = document.getElementById('id_state').value.trim();
+    const postal_code = document.getElementById('id_postal_code').value.trim();
+    const country = document.getElementById('id_country').value.trim();
+    if (!street || !city || !country) return alert('Enter at least street, city, country.');
+
+    const coords = await geocodeAddress(street, city, state, postal_code, country);
+    if (!coords) return alert('Address not found.');
+
+    const address_text = `${street}, ${city}${state ? ', ' + state : ''}${postal_code ? ' ' + postal_code : ''}${country ? ', ' + country : ''}`;
+    const newPoint = { id: nextId++, sequence_number: null, address_text, lat: coords.lat, lon: coords.lon };
+    demoPoints.push(newPoint);
+    addMarker(newPoint);
+    renderTable();
+    fitMapToPoints();
+    document.getElementById('pointForm').reset();
+});
+
+    document.getElementById('pointsTable').addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-point')) {
+            const id = Number(e.target.dataset.pointId);
+            const idx = demoPoints.findIndex(p => p.id === id);
+            if (idx === -1) return;
+            removeMarker(id);
+            demoPoints.splice(idx, 1);
+            renderTable();
+            if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+            if (demoPoints.length) map.fitBounds(L.latLngBounds(demoPoints.map(p => [p.lat, p.lon])).pad(0.2));
+        }
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', function () {
+        demoPoints.forEach(p => removeMarker(p.id));
+        demoPoints = []; markers = {}; nextId = 1;
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+        renderTable();
+        map.setView(defaultCenter, 13);
+    });
+
+    document.getElementById('generateRouteBtn').addEventListener('click', async function () {
+        if (demoPoints.length < 2) return alert("Add at least 2 points.");
+        const pointsParam = demoPoints.map(p => `${p.lat},${p.lon}`);
+        const params = new URLSearchParams();
+        demoPoints.forEach(p => params.append("points[]", `${p.lat},${p.lon}`));
+        const url = `/demo/osrm/?` + params.toString();
+        const r = await fetch(url);
+        const data = await r.json();
+        if (data.error) return alert(data.error);
+        // remove old route
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = data.map;
+        const polylineElem = tempDiv.querySelector("polyline");
+        map.fitBounds(demoPoints.map(p => [p.lat, p.lon]));
+        // just replace markers / polyline by new map
+        document.getElementById('demoMap').innerHTML = data.map;
+        alert("Demo version! Please log in\nto access the full functionality!");
+    });
+});
+</script>
+
+
 {% endblock %}

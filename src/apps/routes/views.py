@@ -15,16 +15,32 @@ import requests
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
+import folium
+import requests
+import polyline
+from django.http import JsonResponse
+
 
 OSRM_BASE_URL = os.environ.get('OSRM_BASE_URL', 'http://localhost:5000')
 
 @login_required(login_url='/')
 def index(request):
-    """Home page view with all routes"""
-    routes = Route.objects.filter(user=request.user).order_by('-created_at') #routes = Route.objects.all().order_by('-created_at')
+    """Home page view with user's own routes"""
+    routes = Route.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'routes/index.html', {
         'routes': routes,
         'view_name': 'index'
+    })
+
+@login_required(login_url='/')
+def all_routes(request):
+    if not request.user.is_superuser:
+        return redirect('routes:index')  # zwykły user nie ma dostępu
+
+    routes = Route.objects.all().order_by('-created_at')
+    return render(request, 'routes/all_routes.html', {
+        'routes': routes,
+        'view_name': 'all_routes'
     })
 
 @login_required(login_url='/')
@@ -330,3 +346,57 @@ def set_start_point(reqeust, route_id, point_id):
 def admin_routes(request):
     routes = Route.objects.select_related('user').order_by('-created_at')
     return render(request, 'routes/admin_routes.html', {'routes': routes})
+
+
+
+
+#OSRM_BASE_URL = "http://localhost:5000"
+
+def osrm_demo_view(request):
+    """
+    Public demo – OSRM route from up to 3 points.
+    Does NOT use DB. Only calculates & returns map HTML.
+    """
+    try:
+        points = request.GET.getlist("points[]")  # expected: ["lat,lon", "lat,lon"]
+        if len(points) < 2:
+            return JsonResponse({"error": "Need at least 2 points"}, status=400)
+        if len(points) > 3:
+            return JsonResponse({"error": "Max 3 points allowed"}, status=400)
+
+        # Convert to float tuples
+        coords = [tuple(map(float, p.split(","))) for p in points]
+
+        # OSRM wants lon,lat
+        osrm_coords = ";".join([f"{lon},{lat}" for lat, lon in coords])
+
+        url = f"{OSRM_BASE_URL}/route/v1/driving/{osrm_coords}?overview=full"
+        r = requests.get(url)
+        if r.status_code != 200:
+            return JsonResponse({"error": "OSRM error"}, status=500)
+
+        data = r.json()
+        geometry = data["routes"][0]["geometry"]
+
+        # folium map
+        folium_map = folium.Map(location=coords[0], zoom_start=14)
+        for i, (lat, lon) in enumerate(coords):
+            folium.Marker(
+                location=(lat, lon),
+                popup=f"Point {i+1}",
+                icon=folium.Icon(color="green")
+            ).add_to(folium_map)
+
+        decoded = polyline.decode(geometry)
+        folium.PolyLine(decoded, color="blue", weight=5).add_to(folium_map)
+
+        map_html = folium_map._repr_html_()
+
+        return JsonResponse({
+            "map": map_html,
+            "distance": round(data["routes"][0]["distance"] / 1000, 2),
+            "duration": round(data["routes"][0]["duration"] / 60, 2),
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
