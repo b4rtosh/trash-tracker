@@ -17,7 +17,9 @@ class Route(models.Model):
     name = models.CharField(max_length=128)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    distance = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)  # km
+    distance = models.DecimalField(
+        max_digits=6, decimal_places=2, blank=True, null=True
+    )  # km
     duration = models.PositiveIntegerField(default=0, blank=True)  # sec
 
 
@@ -26,9 +28,10 @@ class RoutePoint(models.Model):
     address = models.ForeignKey(Address, on_delete=models.CASCADE)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    sequence_number = models.PositiveIntegerField(blank=True, null=True)  # number in order
+    sequence_number = models.PositiveIntegerField(
+        blank=True, null=True
+    )  # number in order
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     arrival_time = models.TimeField(null=True, blank=True)
     # departure_time = models.TimeField(null=True, blank=True)
-    
