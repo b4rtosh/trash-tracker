@@ -2,14 +2,15 @@
 from django.shortcuts import redirect
 from django.urls import resolve, reverse
 from django.conf import settings
+from django.utils.http import url_has_allowed_host_and_scheme
 
 class LoginRequiredMiddleware:
     """
     Middleware to require login for all pages except exempted URLs.
     Exempted URLs: homepage, login, logout, signup, admin, static/media files.
     """
-    EXEMPT_NAMES = ['login', 'logout', 'signup', 'home']  # URL names exempted
-    EXEMPT_PATH_PREFIXES = ['/admin/', '/static/', '/media/']  # paths to skip
+    EXEMPT_NAMES = ['login', 'logout', 'signup', 'home']
+    EXEMPT_PATH_PREFIXES = ['/admin/', '/static/', '/media/']
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -21,19 +22,30 @@ class LoginRequiredMiddleware:
 
         path = request.path_info
 
-        # Allow paths that start with exempt prefixes (admin, static, media)
+        # allow admin/static/media
         if any(path.startswith(p) for p in self.EXEMPT_PATH_PREFIXES):
             return self.get_response(request)
 
-        # Resolve the URL name for the current path
+        # Resolve URL name
         try:
             current_url_name = resolve(path).url_name
         except Exception:
             current_url_name = None
 
-        # Allow access if the URL name is in the exempt list
+        # Allow exempt URLs
         if current_url_name in self.EXEMPT_NAMES:
             return self.get_response(request)
 
-        # Otherwise, redirect to login page with next parameter
-        return redirect(f'{settings.LOGIN_URL}?next={path}')
+        # Compute next parameter safely
+        next_url = path  # candidate value from request
+
+        # Validate 'next'
+        if not url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            next_url = "/"  # safe fallback
+
+        login_url = settings.LOGIN_URL
+        return redirect(f"{login_url}?next={next_url}")
