@@ -183,6 +183,52 @@ resource "aws_ecs_service" "app" {
   depends_on = [module.alb]
 }
 
+resource "aws_appautoscaling_target" "app" {
+  max_capacity       = var.app_max_tasks_count
+  min_capacity       = var.app_min_tasks_count
+  resource_id        = "service/${aws_ecs_cluster.this.name}/${aws_ecs_service.app.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+
+  depends_on = [aws_ecs_service.app]
+}
+
+# Target tracking scaling policy based on CPU utilization
+resource "aws_appautoscaling_policy" "app_cpu" {
+  name               = "${var.app_name}-app-cpu-autoscaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.app.resource_id
+  scalable_dimension = aws_appautoscaling_target.app.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.app.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = var.app_cpu_target_value
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# Target tracking scaling policy based on memory utilization
+resource "aws_appautoscaling_policy" "app_memory" {
+  name               = "${var.app_name}-app-memory-autoscaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.app.resource_id
+  scalable_dimension = aws_appautoscaling_target.app.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.app.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = var.app_memory_target_value
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
 resource "aws_ecs_service" "osrm" {
   name            = "${var.app_name}-osrm-service"
   cluster         = aws_ecs_cluster.this.id
