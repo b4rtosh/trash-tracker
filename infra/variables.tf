@@ -107,11 +107,11 @@ variable "app_max_tasks_count" {
 variable "app_cpu_target_value" {
   description = "Target CPU utilization percentage for app autoscaling"
   type        = number
-  default     = 20
+  default     = 80
 }
 
 variable "app_memory_target_value" {
   description = "Target memory utilization percentage for app autoscaling"
   type        = number
-  default     = 20
+  default     = 80
 }
