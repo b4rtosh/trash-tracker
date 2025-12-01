@@ -1,9 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
+
+{% if request.user.is_superuser %}
+    <a href="{% url 'routes:all_routes' %}" class="btn" style="margin-left: 10px;">
+        All Users' Routes
+    </a>
+{% endif %}
     <h2>Routes</h2>
     <a href="{% url 'routes:route_create' %}" class="btn">Add New Route</a>
     <ul class="route-list">
+
         {% for route in routes %}
             <li><a href="{% url 'routes:route_detail' route.id %}">{{ route.name }}</a></li>
         {% empty %}

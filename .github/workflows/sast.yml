@@ -1,10 +1,10 @@
 name: SAST Scan PR
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches: [ "sast-scan-feature" ]
-  push:
-    branches: [ "sast-scan-feature" ]
+    types: [opened, synchronize, reopened, edited]
+    branches: [ "main", "prod" ]
 
 jobs:
   sast:
@@ -28,21 +28,21 @@ jobs:
     - name: Semgrep Scan
       run: |
         pip install semgrep
-        semgrep --config p/owasp-top-ten -a --json --output semgrep-report.json . || true
+        semgrep --config p/owasp-top-ten -a --json . | tee semgrep-report.json || true
       continue-on-error: true
 
     # ---- BANDIT ----
     - name: Bandit Scan
       run: |
         pip install bandit
-        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -f json | tee bandit-report.json || true
       continue-on-error: true
 
     # ---- SAFETY ----
     - name: Safety Scan
       run: |
         pip install safety
-        safety check --json > safety-report.json || true
+        safety check --json | tee safety-report.json || true
       continue-on-error: true
 
     - name: Pretty-print Semgrep JSON
@@ -54,6 +54,17 @@ jobs:
         with open("semgrep-report.json", "w") as f:
             json.dump(data, f, indent=2)
         EOF
+
+    - name: Display All SAST Reports
+      run: |
+        echo "======= SEMGREP REPORT ======="
+        cat semgrep-report.json
+        echo ""
+        echo "======= BANDIT REPORT ======="
+        cat bandit-report.json
+        echo ""
+        echo "======= SAFETY REPORT ======="
+        cat safety-report.json
 
       # ---- Upload artifacts ----
     - name: Upload SAST Reports

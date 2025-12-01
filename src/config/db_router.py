@@ -11,13 +11,13 @@ class ReplicaRouter:
         """
         Send read operations to the replica database.
         """
-        return 'replica'
+        return "replica"
 
     def db_for_write(self, model, **hints):
         """
         Send write operations to the default (writer) database.
         """
-        return 'default'
+        return "default"
 
     def allow_relation(self, obj1, obj2, **hints):
         """
@@ -30,4 +30,4 @@ class ReplicaRouter:
         """
         Ensure migrations only run on the default (writer) database.
         """
-        return db == 'default'
+        return db == "default"

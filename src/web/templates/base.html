@@ -18,9 +18,15 @@
 
     <div class="header-right">
     {% if request.user.is_authenticated %}
-        <span style="color: white; margin-left: 20px;">
-            User: {{ request.user.username }}
-        </span>
+         {% if request.user.is_superuser %}
+            <a href="/admin/" style="color: white; margin-left: 20px; text-decoration: none;">
+                User: {{ request.user.username }}
+            </a>
+        {% else %}
+            <span style="color: white; margin-left: 20px;">
+                User: {{ request.user.username }}
+            </span>
+        {% endif %}
 
         <a href="{% url 'password_change' %}" class="btn" style="margin-left: 10px;">
             Change Password
