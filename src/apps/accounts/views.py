@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from .forms import SignUpForm
 from django.contrib.auth.views import LoginView
 
+
 def signup_view(request):
     if request.method == "POST":
         form = SignUpForm(request.POST)
@@ -16,9 +17,9 @@ def signup_view(request):
 
 
 class MyLoginView(LoginView):
-    template_name = 'registration/login.html'
+    template_name = "registration/login.html"
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            return redirect('/routes/')
+            return redirect("/routes/")
         return super().dispatch(request, *args, **kwargs)

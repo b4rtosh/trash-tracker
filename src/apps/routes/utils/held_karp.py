@@ -4,9 +4,9 @@ import itertools
 
 def generate_distances(n):
     distances = [[0] * n for i in range(n)]
-    for i in range(0,n):
-        for j in range(i+1,n):
-            distances[i][j] = distances[j][i] = random.randint(1,99)
+    for i in range(0, n):
+        for j in range(i + 1, n):
+            distances[i][j] = distances[j][i] = random.randint(1, 99)
     return distances
 
 
@@ -23,7 +23,6 @@ def held_karp(points_dict):
 
     for subset_size in range(2, n):
         for subset in itertools.combinations(range(1, n), subset_size):
-
             bits = 0
             for bit in subset:
                 bits |= 1 << bit

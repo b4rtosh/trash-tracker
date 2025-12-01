@@ -1,16 +1,18 @@
 # apps/accounts/middleware.py
 from django.shortcuts import redirect
-from django.urls import resolve, reverse
+from django.urls import resolve
 from django.conf import settings
 from django.utils.http import url_has_allowed_host_and_scheme
+
 
 class LoginRequiredMiddleware:
     """
     Middleware to require login for all pages except exempted URLs.
     Exempted URLs: homepage, login, logout, signup, admin, static/media files.
     """
-    EXEMPT_NAMES = ['login', 'logout', 'signup', 'home']
-    EXEMPT_PATH_PREFIXES = ['/admin/', '/static/', '/media/']
+
+    EXEMPT_NAMES = ["login", "logout", "signup", "home"]
+    EXEMPT_PATH_PREFIXES = ["/admin/", "/static/", "/media/"]
 
     def __init__(self, get_response):
         self.get_response = get_response
