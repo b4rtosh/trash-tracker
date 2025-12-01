@@ -156,74 +156,74 @@ resource "aws_wafv2_web_acl" "default" {
   }
 
   # Rule 2: Block XSS patterns
-  # rule {
-  #   name     = "XSSRule"
-  #   priority = 1
-  #   action {
-  #     block {}
-  #   }
-  #   statement {
-  #     or_statement {
-  #       statement {
-  #         byte_match_statement {
-  #           search_string = "<script"
-  #           field_to_match {
-  #             query_string {}
-  #           }
-  #           text_transformation {
-  #             priority = 0
-  #             type     = "LOWERCASE"
-  #           }
-  #           positional_constraint = "CONTAINS"
-  #         }
-  #       }
-  #       statement {
-  #         byte_match_statement {
-  #           search_string = "javascript:"
-  #           field_to_match {
-  #             query_string {}
-  #           }
-  #           text_transformation {
-  #             priority = 0
-  #             type     = "LOWERCASE"
-  #           }
-  #           positional_constraint = "CONTAINS"
-  #         }
-  #       }
-  #       statement {
-  #         byte_match_statement {
-  #           search_string = "onerror="
-  #           field_to_match {
-  #             query_string {}
-  #           }
-  #           text_transformation {
-  #             priority = 0
-  #             type     = "LOWERCASE"
-  #           }
-  #           positional_constraint = "CONTAINS"
-  #         }
-  #       }
-  #       statement {
-  #         byte_match_statement {
-  #           search_string = "onload="
-  #           field_to_match {
-  #             query_string {}
-  #           }
-  #           text_transformation {
-  #             priority = 0
-  #             type     = "LOWERCASE"
-  #           }
-  #           positional_constraint = "CONTAINS"
-  #         }
-  #       }
-  #     }
-  #   }
-  #   visibility_config {
-  #     cloudwatch_metrics_enabled = true
-  #     metric_name                = "XSSRule"
-  #     sampled_requests_enabled   = true
-  #   }
-  # }
+  rule {
+    name     = "XSSRule"
+    priority = 1
+    action {
+      block {}
+    }
+    statement {
+      or_statement {
+        statement {
+          byte_match_statement {
+            search_string = "<script"
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string = "javascript:"
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string = "onerror="
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string = "onload="
+            field_to_match {
+              query_string {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "XSSRule"
+      sampled_requests_enabled   = true
+    }
+  }
 
   # Rule 3: Block IP addresses in URI (path traversal/SSRF attempts)
   rule {
