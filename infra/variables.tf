@@ -91,3 +91,27 @@ variable "alert_email" {
   type        = string
   default = "272249@student.pwr.edu.pl,272279@student.pwr.edu.pl,272174@student.pwr.edu.pl"
 }
+
+variable "app_min_tasks_count" {
+  description = "Minimum number of app tasks for autoscaling"
+  type        = number
+  default     = 1
+}
+
+variable "app_max_tasks_count" {
+  description = "Maximum number of app tasks for autoscaling"
+  type        = number
+  default     = 2
+}
+
+variable "app_cpu_target_value" {
+  description = "Target CPU utilization percentage for app autoscaling"
+  type        = number
+  default     = 80
+}
+
+variable "app_memory_target_value" {
+  description = "Target memory utilization percentage for app autoscaling"
+  type        = number
+  default     = 80
+}
