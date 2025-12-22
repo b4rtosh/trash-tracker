@@ -3,7 +3,7 @@
 The app is a smart tool which helps trash company to find the most optimized path to collect trash from multiple points. The app will provide the driver with the most optimized path to collect trash from multiple points. It will also provide the driver with the distance between each point and the total distance of the route. Additionally, admin control allows management of users and all routes. There is also a preview of features in default home page before someone logs in or registers.
 
 ## The Internet facing infrastructure
-The app was hosted in AWS with CloudFlare as an entry gateway. The CI/CD is configured to build the application image and push it to ECR. Then the app is deployed using Terraform code with all resources presented in diagram presented in file [INFRA_DIAGRAM](documentation/infra.pdf). There is a documentation file in Polish containing all details of the project.
+The app was hosted in AWS with CloudFlare as an entry gateway. The CI/CD is configured to build the application image and push it to ECR. Then the app is deployed using Terraform code with all resources presented in diagram presented in file [INFRA_DIAGRAM](documentation/infra.pdf). There is a [documentation file](documentation/trash_tracker.pdf) in Polish containing all details of the project.
 
 ## How to set up local deployment
 ### Database
